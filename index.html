@@ -276,8 +276,7 @@ function loadFromCloud(silent){
       _syncing=false;
       if(d.sha)_fileSha=d.sha;
       if(!d.content){_loaded=true;render();showSync('ok');return}
-      var raw=decodeURIComponent(escape(atob(d.content.replace(/
-/g,''))));
+      var raw=decodeURIComponent(escape(atob(d.content.replace(/\n/g,''))));
       var data=JSON.parse(raw);
       var localTs=(state&&state.ts)||0;
       var remoteTs=(data&&data.ts)||0;
