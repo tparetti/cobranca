@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Dashboard Cobrança — Mutant</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f7fa;color:#1e293b;font-size:13px;min-height:100vh}
+.wrap{max-width:1400px;margin:0 auto;padding:24px 20px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+h1{font-size:22px;font-weight:800;color:#0f172a}
+.today-pill{background:#fff;border:1px solid #e2e8f0;border-radius:999px;padding:7px 16px;font-size:12px;color:#64748b;font-weight:500}
+.kpis{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:20px}
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:680px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:#fff;border:1px solid #e8edf3;border-radius:12px;padding:14px 16px;cursor:pointer;transition:.2s}
+.kpi:hover{box-shadow:0 4px 14px rgba(0,0,0,.05);transform:translateY(-1px)}
+.kpi.active{border-color:#0891b2;box-shadow:0 0 0 3px rgba(8,145,178,.12)}
+.kpi-num{font-size:24px;font-weight:800;line-height:1}
+.kpi-label{font-size:10.5px;color:#94a3b8;margin-top:5px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.kpi-pct{font-size:11px;color:#64748b;margin-top:4px}
+.kpi-fixo .kpi-num{color:#3730a3}
+.kpi-success .kpi-num{color:#059669}
+.kpi-hibrido .kpi-num{color:#9333ea}
+.kpi-digital .kpi-num{color:#0891b2}
+.kpi-credito .kpi-num{color:#d97706}
+.kpi-volume .kpi-num{color:#0f172a;font-size:20px}
+.kpi-total .kpi-num{color:#0891b2}
+.filters{background:#fff;border:1px solid #e8edf3;border-radius:12px;padding:14px;margin-bottom:14px;display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:10px}
+@media(max-width:1100px){.filters{grid-template-columns:1fr 1fr}}
+.filters input,.filters select{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px;color:#1e293b;outline:none;font-family:inherit}
+.filters input:focus,.filters select:focus{border-color:#0891b2;box-shadow:0 0 0 3px rgba(8,145,178,.08)}
+.clear-btn{background:#f1f5f9;color:#64748b;border:none;border-radius:8px;padding:9px 14px;font-size:12px;font-weight:700;cursor:pointer}
+.clear-btn:hover{background:#e2e8f0}
+.split{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+@media(max-width:1100px){.split{grid-template-columns:1fr}}
+.split-card{background:#fff;border:1px solid #e8edf3;border-radius:12px;padding:14px 18px}
+.split-card h3{font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;font-weight:700}
+.split-bars{display:flex;flex-direction:column;gap:6px}
+.split-row{display:flex;align-items:center;gap:10px;font-size:12px}
+.split-name{min-width:90px;font-weight:600;color:#475569;font-size:11px}
+.split-bar{flex:1;height:18px;background:#f1f5f9;border-radius:5px;overflow:hidden;position:relative}
+.split-bar-fill{height:100%;border-radius:5px;display:flex;align-items:center;padding-left:8px;color:#fff;font-size:10px;font-weight:700;min-width:24px}
+.bar-fixo{background:linear-gradient(90deg,#3730a3,#4f46e5)}
+.bar-success{background:linear-gradient(90deg,#059669,#10b981)}
+.bar-hibrido{background:linear-gradient(90deg,#9333ea,#a855f7)}
+.bar-digital{background:linear-gradient(90deg,#0891b2,#06b6d4)}
+.bar-credito{background:linear-gradient(90deg,#d97706,#f59e0b)}
+.bar-bu{background:linear-gradient(90deg,#0891b2,#06b6d4)}
+.bar-diretor{background:linear-gradient(90deg,#475569,#64748b)}
+.split-count{font-weight:700;color:#0f172a;min-width:30px;text-align:right;font-size:12px}
+.table-wrap{background:#fff;border:1px solid #e8edf3;border-radius:12px;overflow:hidden}
+.table-head{padding:12px 16px;border-bottom:1px solid #e8edf3;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.table-head h2{font-size:14px;font-weight:700}
+.table-head .count{font-size:12px;color:#64748b;background:#f1f5f9;border-radius:999px;padding:4px 12px;font-weight:600}
+.tbl-scroll{overflow-x:auto;max-height:70vh;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead{position:sticky;top:0;background:#f8fafc;z-index:5}
+th{text-align:left;padding:10px 12px;font-size:10.5px;color:#64748b;text-transform:uppercase;letter-spacing:.4px;font-weight:700;border-bottom:1px solid #e2e8f0;cursor:pointer;user-select:none;white-space:nowrap}
+th:hover{background:#f1f5f9;color:#0891b2}
+th .arrow{display:inline-block;margin-left:4px;color:#cbd5e1}
+th.sort-asc .arrow,th.sort-desc .arrow{color:#0891b2}
+td{padding:10px 12px;border-bottom:1px solid #f1f5f9;vertical-align:top}
+tr:hover td{background:#fafbfc}
+.carteira{font-weight:700;color:#0f172a;font-size:12px}
+.cliente{font-weight:600;color:#334155}
+.obs{color:#64748b;font-size:11px;font-style:italic}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.tag{display:inline-block;font-size:10px;padding:2px 8px;border-radius:999px;font-weight:700;white-space:nowrap}
+.tag-fixo{background:#e0e7ff;color:#3730a3}
+.tag-success{background:#d1fae5;color:#065f46}
+.tag-hibrido{background:#f3e8ff;color:#6b21a8}
+.tag-digital{background:#cffafe;color:#155e75}
+.tag-credito{background:#fed7aa;color:#9a3412}
+.tag-bu-int{background:#dbeafe;color:#1e40af}
+.tag-bu-grb{background:#fef3c7;color:#854d0e}
+.empty{padding:50px;text-align:center;color:#94a3b8}
+.empty-icon{font-size:36px;margin-bottom:10px}
+.clickable{cursor:pointer}
+.clickable.active{outline:2px solid #0891b2;border-radius:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>💰 Cobrança Mutant — Dashboard</h1>
+  <div class="today-pill" id="todayDate">—</div>
+</header>
+
+<div class="kpis">
+  <div class="kpi kpi-fixo" data-filter="FIXO"><div class="kpi-num" id="k-fixo">0</div><div class="kpi-label">📌 Fixo</div><div class="kpi-pct" id="kp-fixo">—</div></div>
+  <div class="kpi kpi-success" data-filter="SUCCESS FEE"><div class="kpi-num" id="k-success">0</div><div class="kpi-label">🎯 Success Fee</div><div class="kpi-pct" id="kp-success">—</div></div>
+  <div class="kpi kpi-hibrido" data-filter="HIBRIDO"><div class="kpi-num" id="k-hibrido">0</div><div class="kpi-label">🔀 Híbrido</div><div class="kpi-pct" id="kp-hibrido">—</div></div>
+  <div class="kpi kpi-digital" data-filter="DIGITAL"><div class="kpi-num" id="k-digital">0</div><div class="kpi-label">💻 Digital</div><div class="kpi-pct" id="kp-digital">—</div></div>
+  <div class="kpi kpi-credito" data-filter="CRÉDITO"><div class="kpi-num" id="k-credito">0</div><div class="kpi-label">💳 Crédito</div><div class="kpi-pct" id="kp-credito">—</div></div>
+  <div class="kpi kpi-volume"><div class="kpi-num" id="k-volume">0</div><div class="kpi-label">👥 Volume PAs</div><div class="kpi-pct" id="kp-volume">total alocado</div></div>
+  <div class="kpi kpi-total" data-filter="all"><div class="kpi-num" id="k-total">0</div><div class="kpi-label">📊 Carteiras</div><div class="kpi-pct">total</div></div>
+</div>
+
+<div class="split">
+  <div class="split-card">
+    <h3>🧾 Modelo de Remuneração</h3>
+    <div class="split-bars" id="splitModelo"></div>
+  </div>
+  <div class="split-card">
+    <h3>🏢 BU</h3>
+    <div class="split-bars" id="splitBU"></div>
+  </div>
+  <div class="split-card">
+    <h3>👤 Diretor</h3>
+    <div class="split-bars" id="splitDiretor"></div>
+  </div>
+</div>
+
+<div class="filters">
+  <input id="searchBox" type="text" placeholder="🔍 Buscar carteira, cliente, observação...">
+  <select id="filterModelo"><option value="">Modelo: todos</option></select>
+  <select id="filterBU"><option value="">BU: todas</option></select>
+  <select id="filterDiretor"><option value="">Diretor: todos</option></select>
+  <select id="filterCliente"><option value="">Cliente: todos</option></select>
+  <button class="clear-btn" onclick="clearFilters()">Limpar</button>
+</div>
+
+<div class="table-wrap">
+  <div class="table-head">
+    <h2>Carteiras / Projetos</h2>
+    <span class="count" id="rowCount">0 carteiras</span>
+  </div>
+  <div class="tbl-scroll">
+    <table>
+      <thead><tr>
+        <th data-sort="carteira">Carteira <span class="arrow">↕</span></th>
+        <th data-sort="cliente">Cliente <span class="arrow">↕</span></th>
+        <th data-sort="bu">BU <span class="arrow">↕</span></th>
+        <th data-sort="modelo">Modelo <span class="arrow">↕</span></th>
+        <th data-sort="volume_pa" class="num">PAs <span class="arrow">↕</span></th>
+        <th data-sort="valor_unit" class="num">Valor Unit. <span class="arrow">↕</span></th>
+        <th data-sort="taxa" class="num">Taxa <span class="arrow">↕</span></th>
+        <th data-sort="diretor">Diretor <span class="arrow">↕</span></th>
+        <th data-sort="obs">Observação <span class="arrow">↕</span></th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+</div>
+
+<script>
+var DATA=[{"carteira":"RIACHUELO ATRASO CURTO","bu":"INTERVALOR","cliente":"RIACHUELO","modelo":"FIXO","volume_pa":11,"valor_unit":10000,"taxa":1,"obs":"Cliente não acatou o pedido de reajuste da PA","diretor":"CONRADO","gestor":"","extra1":""},{"carteira":"RIACHUELO ATRASO LONGO","bu":"INTERVALOR","cliente":"RIACHUELO","modelo":"SUCCESS FEE","volume_pa":0,"valor_unit":0,"taxa":"","obs":"","diretor":"CONRADO","gestor":"","extra1":""},{"carteira":"TENDA FATURA","bu":"INTERVALOR","cliente":"TENDA","modelo":"FIXO","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"CONRADO","gestor":"","extra1":""},{"carteira":"TENDA CRELIQ","bu":"INTERVALOR","cliente":"TENDA","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"CONRADO","gestor":"","extra1":""},{"carteira":"LINX","bu":"INTERVALOR","cliente":"LINX","modelo":"SUCCESS FEE","volume_pa":0,"valor_unit":0,"taxa":"","obs":"","diretor":"CONRADO","gestor":"","extra1":110000},{"carteira":"MAPFRE","bu":"INTERVALOR","cliente":"MAPFRE","modelo":"FIXO","volume_pa":8,"valor_unit":7857.75,"taxa":1,"obs":"6 operadores","diretor":"CONRADO","gestor":"","extra1":2200},{"carteira":"SEM PARAR AMIGÁVEL","bu":"INTERVALOR","cliente":"SEM PARAR","modelo":"HIBRIDO","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"CONRADO","gestor":"","extra1":""},{"carteira":"SEM PARAR ESCOB","bu":"INTERVALOR","cliente":"SEM PARAR","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"CONRADO","gestor":"","extra1":""},{"carteira":"SANTANDER","bu":"INTERVALOR","cliente":"SANTANDER","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"CONRADO","gestor":"","extra1":""},{"carteira":"RECOVERY - PJ ITAU","bu":"INTERVALOR","cliente":"RECOVERY","modelo":"SUCCESS FEE","volume_pa":0,"valor_unit":0,"taxa":"","obs":"","diretor":"CONRADO","gestor":"","extra1":""},{"carteira":"MERCADO PAGO BOT","bu":"INTERVALOR","cliente":"MERCADO PAGO","modelo":"FIXO + SUCCESS FEE","volume_pa":61,"valor_unit":"R$ 1.660,59","taxa":0,"obs":"Sem Humano","diretor":"CONRADO","gestor":"","extra1":""},{"carteira":"BANCO PAN - BOT","bu":"INTERVALOR","cliente":"BANCO PAN","modelo":"DIGITAL","volume_pa":5,"valor_unit":4800,"taxa":"","obs":"","diretor":"CONRADO","gestor":"","extra1":""},{"carteira":"BANCO PAN RECEPTIVO","bu":"INTERVALOR","cliente":"BANCO PAN","modelo":"FIXO","volume_pa":15,"valor_unit":9078,"taxa":"","obs":"5 Pas taxa 1 e 1- taxa 2","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"ULTRAGAZ PREVENTIVO","bu":"INTERVALOR","cliente":"ULTRAGAZ","modelo":"SUCCESS FEE","volume_pa":6,"valor_unit":0,"taxa":"-","obs":"Sem Humano","diretor":"CONRADO","gestor":"","extra1":""},{"carteira":"ULTRAGAZ COBRANÇA","bu":"INTERVALOR","cliente":"ULTRAGAZ","modelo":"SUCCESS FEE","volume_pa":"-","valor_unit":0,"taxa":1,"obs":"9 operadores","diretor":"CONRADO","gestor":"","extra1":""},{"carteira":"CLARO COBRANÇA - FIXA","bu":"INTERVALOR","cliente":"CLARO","modelo":"FIXO","volume_pa":29,"valor_unit":9530.9,"taxa":2,"obs":"","diretor":"ERIKA","gestor":"","extra1":""},{"carteira":"CLARO COBRANÇA - HIBRIDA","bu":"INTERVALOR","cliente":"CLARO","modelo":"HIBRIDO","volume_pa":97,"valor_unit":8863.9,"taxa":1,"obs":"50% humano e 50% bot","diretor":"ERIKA","gestor":"","extra1":""},{"carteira":"CLARO ROBÔ VOZ","bu":"INTERVALOR","cliente":"CLARO","modelo":"DIGITAL","volume_pa":103,"valor_unit":1290,"taxa":"-","obs":"","diretor":"ERIKA","gestor":"","extra1":""},{"carteira":"CLARO URA RECEPTIVA","bu":"INTERVALOR","cliente":"CLARO","modelo":"SUCCESS FEE","volume_pa":"-","valor_unit":0,"taxa":2,"obs":"","diretor":"ERIKA","gestor":"","extra1":""},{"carteira":"VIVO - B2C - PÓS CHURN","bu":"INTERVALOR","cliente":"TELEFONICA","modelo":"SUCCESS FEE","volume_pa":"-","valor_unit":0,"taxa":2,"obs":"","diretor":"ERIKA","gestor":"","extra1":""},{"carteira":"VIVO - B2C - PRÉ CHURN DIGITAL","bu":"INTERVALOR","cliente":"TELEFONICA","modelo":"DIGITAL","volume_pa":141,"valor_unit":2022,"taxa":"-","obs":"Reajuste de 3,83% aprovado em 25/02","diretor":"ERIKA","gestor":"285102","extra1":""},{"carteira":"VIVO - B2C - PRÉ CHURN HUMANO","bu":"INTERVALOR","cliente":"TELEFONICA","modelo":"FIXO","volume_pa":94,"valor_unit":10294.82,"taxa":2,"obs":"Reajuste de 6,37% aprovado em 25/02","diretor":"ERIKA","gestor":"967713.08","extra1":""},{"carteira":"VIVO - B2C - VIVO EM DIA","bu":"INTERVALOR","cliente":"TELEFONICA","modelo":"FIXO","volume_pa":"","valor_unit":9758.13,"taxa":"","obs":"Reajuste de 6,37% aprovado em 25/02","diretor":"ERIKA","gestor":"Quantas Pas ?","extra1":""},{"carteira":"VIVO - B2C - PRÉ CHURN HUMANO","bu":"INTERVALOR","cliente":"TELEFONICA","modelo":"FIXO","volume_pa":"-","valor_unit":0,"taxa":"-","obs":"","diretor":"ERIKA","gestor":"","extra1":""},{"carteira":"TIM - COBRANÇA DIGITAL","bu":"INTERVALOR","cliente":"TIM","modelo":"DIGITAL","volume_pa":160,"valor_unit":1780,"taxa":"-","obs":"","diretor":"ERIKA","gestor":"","extra1":""},{"carteira":"TIM - TELECOBRANÇA","bu":"INTERVALOR","cliente":"TIM","modelo":"FIXO","volume_pa":68,"valor_unit":8993,"taxa":2,"obs":"","diretor":"ERIKA","gestor":"","extra1":""},{"carteira":"CLARO - PROCESSADORA","bu":"INTERVALOR","cliente":"CLARO","modelo":"CRÉDITO","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"VIVO - PROCESSADORA","bu":"INTERVALOR","cliente":"TELEFONICA","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"TICKET","bu":"INTERVALOR","cliente":"TICKET","modelo":"CRÉDITO","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"GMAC - PROMOTORA","bu":"INTERVALOR","cliente":"GMAC","modelo":"CRÉDITO","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"GMAC - INDEXAÇÃO","bu":"INTERVALOR","cliente":"GMAC","modelo":"CRÉDITO","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"CELETEM - ATENDIMENTO","bu":"INTERVALOR","cliente":"CETELEM","modelo":"FIXO","volume_pa":6,"valor_unit":13353,"taxa":2,"obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"CETELEM - KYC","bu":"INTERVALOR","cliente":"CETELEM","modelo":"FIXO","volume_pa":2,"valor_unit":13091,"taxa":2,"obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"CETELEM - PREVENÇÃO A FRAUDE","bu":"INTERVALOR","cliente":"CETELEM","modelo":"FIXO","volume_pa":3,"valor_unit":10100,"taxa":2,"obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"CETELEM - TELECOBRANÇA","bu":"INTERVALOR","cliente":"CETELEM","modelo":"FIXO","volume_pa":3,"valor_unit":13091,"taxa":2,"obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"CETELEM - RECEPTIVO","bu":"INTERVALOR","cliente":"CETELEM","modelo":"FIXO","volume_pa":2,"valor_unit":10100,"taxa":1,"obs":"temos outra 1 PA - taxa 2 R$ 13.091","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"CETELEM - AMIGÁVEL","bu":"INTERVALOR","cliente":"CETELEM","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"CETELEM - CONSIGNADO","bu":"INTERVALOR","cliente":"CETELEM","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"HYUNDAI PROMOTORA","bu":"INTERVALOR","cliente":"HYUNDAI","modelo":"CRÉDITO","volume_pa":"","valor_unit":"","taxa":"","obs":"Watchdoc","diretor":"ALBERT DURAES","gestor":"","extra1":"Estamos negociando reajuste de contrato ? "},{"carteira":"YAMAHA","bu":"INTERVALOR","cliente":"YAMAHA","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"SIMPALA","bu":"INTERVALOR","cliente":"SIMPALA","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"SKY","bu":"INTERVALOR","cliente":"SKY","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"VOLVO","bu":"INTERVALOR","cliente":"VOLVO","modelo":"CRÉDITO","volume_pa":"","valor_unit":10000,"taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"PRINCIPIA","bu":"INTERVALOR","cliente":"PRINCIPIA","modelo":"FIXO","volume_pa":"50 AGVs e 47 URAS","valor_unit":0,"taxa":"-","obs":"Sem Humano","diretor":"CONRADO","gestor":"Preencher unitario AGV e URA","extra1":""},{"carteira":"ELEVA","bu":"INTERVALOR","cliente":"ELEVA","modelo":"SUCCESS FEE","volume_pa":5,"valor_unit":0,"taxa":1,"obs":"6 operadores e 5 AGVs","diretor":"CONRADO","gestor":"","extra1":""},{"carteira":"CRUZEIRO MASSIVAS","bu":"INTERVALOR","cliente":"CRUZEIRO DO SUL","modelo":"SUCCESS FEE","volume_pa":0,"valor_unit":0,"taxa":"-","obs":"Envio de SMS e e-mails Custeados pelo cliente (R$ 0,018 e-mail e 0,040 SMS)","diretor":"CONRADO","gestor":"Tem bot aqui ?","extra1":""},{"carteira":"CRUZEIRO ATP","bu":"INTERVALOR","cliente":"CRUZEIRO DO SUL","modelo":"SUCCESS FEE","volume_pa":0,"valor_unit":0,"taxa":1,"obs":"3 operadores","diretor":"CONRADO","gestor":"","extra1":""},{"carteira":"CRUZEIRO BOT","bu":"INTERVALOR","cliente":"CRUZEIRO DO SUL","modelo":"SUCCESS FEE","volume_pa":5,"valor_unit":0,"taxa":"-","obs":"Sem Humano","diretor":"CONRADO","gestor":"","extra1":""},{"carteira":"ESTACIO TELECOBRANÇA","bu":"INTERVALOR","cliente":"ESTACIO DE SÁ","modelo":"SUCCESS FEE + FIXA","volume_pa":9,"valor_unit":"","taxa":"","obs":"9 operadores","diretor":"CONRADO","gestor":"Preencher o definido em contrato FIXA","extra1":"YDUQS - ATIVO (TELE)"},{"carteira":"ESTACIO INATIVO","bu":"INTERVALOR","cliente":"ESTACIO DE SÁ","modelo":"SUCCESS FEE","volume_pa":5,"valor_unit":0,"taxa":1,"obs":"8 operadores","diretor":"CONRADO","gestor":"","extra1":"YDUQS - INATIVO (MASS)"},{"carteira":"ESTACIO ATP","bu":"INTERVALOR","cliente":"ESTACIO DE SÁ","modelo":"FIXO","volume_pa":20,"valor_unit":8914,"taxa":1,"obs":"2 operadores","diretor":"CONRADO","gestor":"","extra1":"YDUQS - ATP"},{"carteira":"ESTACIO BOT","bu":"INTERVALOR","cliente":"ESTACIO DE SÁ","modelo":"DIGITAL","volume_pa":5,"valor_unit":0,"taxa":1,"obs":"2 operadores","diretor":"CONRADO","gestor":"","extra1":"YDUQS - BOT"},{"carteira":"ISAAC","bu":"INTERVALOR","cliente":"ISAAC","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":0,"taxa":"","obs":"","diretor":"CONRADO","gestor":"","extra1":""},{"carteira":"KROTON ATIVO","bu":"INTERVALOR","cliente":"KROTON","modelo":"SUCCESS FEE + FIXA","volume_pa":"","valor_unit":"","taxa":2,"obs":"58 operadores e 22 Bots","diretor":"CONRADO","gestor":"O que ele paga fixo ?","extra1":""},{"carteira":"KROTON ATP","bu":"INTERVALOR","cliente":"KROTON","modelo":"FIXO","volume_pa":"-","valor_unit":0,"taxa":1,"obs":"122 operadores alocados nas Instituições de ensino","diretor":"CONRADO","gestor":"","extra1":""},{"carteira":"MOVIDA","bu":"INTERVALOR","cliente":"MOVIDA","modelo":"SUCCESS FEE","volume_pa":5,"valor_unit":"","taxa":1,"obs":"9 operadores","diretor":"CONRADO","gestor":"","extra1":""},{"carteira":"HAPVIDA NDI","bu":"INTERVALOR","cliente":"HAPVIDA","modelo":"DIGITAL","volume_pa":5,"valor_unit":8200,"taxa":"-","obs":"","diretor":"CONRADO","gestor":"É isso mesmo, apenas 5 AGVs","extra1":""},{"carteira":"INTERMÉDICA","bu":"INTERVALOR","cliente":"HAPVIDA","modelo":"SUCCESS FEE","volume_pa":0,"valor_unit":0,"taxa":1,"obs":"6 operadores","diretor":"CONRADO","gestor":"","extra1":""},{"carteira":"RECOVERY CRC","bu":"INTERVALOR","cliente":"RECOVERY","modelo":"FIXO","volume_pa":8,"valor_unit":10202.16,"taxa":2,"obs":"100% humano","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"RECOVERY CANAIS DIGITAIS","bu":"INTERVALOR","cliente":"RECOVERY","modelo":"DIGITAL","volume_pa":6,"valor_unit":10202.16,"taxa":2,"obs":"100% humano","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"RECOVERY CANAIS CRITICOS","bu":"INTERVALOR","cliente":"RECOVERY","modelo":"FIXO","volume_pa":9,"valor_unit":5889.85,"taxa":1,"obs":"100% humano","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"AFINZ TELEFONE","bu":"GRB","cliente":"AFINZ","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"AFINZ VARIAVEL","bu":"GRB","cliente":"AFINZ","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"AFINZ TELE","bu":"GRB","cliente":"AFINZ","modelo":"FIXO","volume_pa":"","valor_unit":9000,"taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"ANIMA PRESENCIAL","bu":"GRB","cliente":"ANIMA EDUCACAO","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"ANIMA EAD","bu":"GRB","cliente":"ANIMA EDUCACAO","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":6600,"taxa":"","obs":"por 12 posições + sucess fee","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"BMG RECONQUISTA","bu":"GRB","cliente":"BANCO BMG","modelo":"FIXO","volume_pa":"","valor_unit":10657,"taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"BMG FIXA","bu":"GRB","cliente":"BANCO BMG","modelo":"FIXO","volume_pa":"","valor_unit":11652,"taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"BMG RECEPTIVO","bu":"GRB","cliente":"BANCO BMG","modelo":"FIXO","volume_pa":"","valor_unit":10657,"taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"BMG VARIAVEL","bu":"GRB","cliente":"BANCO BMG","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"BANCO INTER","bu":"GRB","cliente":"BANCO INTER","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"BANCO INTER CARTÃO","bu":"GRB","cliente":"BANCO INTER","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"ITAU CARTAO","bu":"GRB","cliente":"BANCO ITAU","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"ITAU PERSONNALITE","bu":"GRB","cliente":"BANCO ITAU","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"ITAU PF","bu":"GRB","cliente":"BANCO ITAU","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"BTG PACTUAL - ARC4U","bu":"GRB","cliente":"BTG PACTUAL","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"BTG PACTUAL - VEÍCULOS","bu":"GRB","cliente":"BTG PACTUAL","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"C&A","bu":"GRB","cliente":"C&A","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"C6 PA FIXA","bu":"GRB","cliente":"C6 BANK","modelo":"FIXO","volume_pa":"","valor_unit":12744,"taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"C6 PJ","bu":"GRB","cliente":"C6 BANK","modelo":"FIXO","volume_pa":"","valor_unit":9612,"taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"CARREFOUR","bu":"GRB","cliente":"CARREFOUR","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"CREDSYSTEM FASE 03","bu":"GRB","cliente":"CREDSYSTEM","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"CREDSYSTEM PDD","bu":"GRB","cliente":"CREDSYSTEM","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"CREDSYSTEM PREJUIZO","bu":"GRB","cliente":"CREDSYSTEM","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"CREDSYSTEM RECEPTIVO","bu":"GRB","cliente":"CREDSYSTEM","modelo":"FIXO","volume_pa":"","valor_unit":9979.13,"taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"CREDSYSTEM TELECOBRANÇA","bu":"GRB","cliente":"CREDSYSTEM","modelo":"FIXO","volume_pa":"","valor_unit":9979.13,"taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"CREDSYSTEM TELECOBRANÇA - REEMBOLSO","bu":"GRB","cliente":"CREDSYSTEM","modelo":"FIXO","volume_pa":"","valor_unit":2600,"taxa":"","obs":"Por PA - na TELECOBRANÇA","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"RECOVERY ATEND. DIGITAL","bu":"GRB","cliente":"GRUPO RECOVERY","modelo":"FIXO","volume_pa":"","valor_unit":8571.41,"taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"RECOVERY ATRASO CURTO","bu":"GRB","cliente":"GRUPO RECOVERY","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"RECOVERY ATRASO LONGO","bu":"GRB","cliente":"GRUPO RECOVERY","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"RECOVERY COINCIDENTES","bu":"GRB","cliente":"GRUPO RECOVERY","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"RECOVERY PJ","bu":"GRB","cliente":"GRUPO RECOVERY","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"RECOVERY RECEPTIVO","bu":"GRB","cliente":"GRUPO RECOVERY","modelo":"FIXO","volume_pa":"","valor_unit":8571.41,"taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"IFOOD","bu":"GRB","cliente":"IFOOD","modelo":"FIXO","volume_pa":"","valor_unit":8720,"taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"MERCADO PAGO PA FIXA","bu":"GRB","cliente":"MERCADO PAGO","modelo":"FIXO","volume_pa":"","valor_unit":9755,"taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"MERCADO PAGO RECEPTIVO DIGITAL","bu":"GRB","cliente":"MERCADO PAGO","modelo":"DIGITAL","volume_pa":"","valor_unit":9755,"taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"MERCADO PAGO VARIAVEL","bu":"GRB","cliente":"MERCADO PAGO","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"MUFFATO","bu":"GRB","cliente":"MUFFATO","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"NATURA","bu":"GRB","cliente":"NATURA","modelo":"FIXO","volume_pa":"","valor_unit":9000,"taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"PERNAMBUCANAS","bu":"GRB","cliente":"PERNAMBUCANAS","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"PERNAMBUCANAS TELE","bu":"GRB","cliente":"PERNAMBUCANAS","modelo":"FIXO","volume_pa":"","valor_unit":8956,"taxa":"","obs":"1.265 Telecom","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"PORTO CARTAO","bu":"GRB","cliente":"PORTO SEGURO","modelo":"SUCCESS FEE","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"PORTO CONSÓRCIO","bu":"GRB","cliente":"PORTO SEGURO","modelo":"FIXO","volume_pa":"","valor_unit":11000,"taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"PORTO PJ","bu":"GRB","cliente":"PORTO SEGURO","modelo":"FIXO","volume_pa":"","valor_unit":11000,"taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"PORTO SEGURO AMIGAVEL","bu":"GRB","cliente":"PORTO SEGURO","modelo":"FIXO","volume_pa":"","valor_unit":15000,"taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"PORTO SEGURO RECEPTIVO","bu":"GRB","cliente":"PORTO SEGURO","modelo":"FIXO","volume_pa":"","valor_unit":11000,"taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"PORTO SEGURO SAUDE","bu":"GRB","cliente":"PORTO SEGURO","modelo":"FIXO","volume_pa":"","valor_unit":11000,"taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"PORTO SEGURO TRANSBORDO","bu":"GRB","cliente":"PORTO SEGURO","modelo":"FIXO","volume_pa":"","valor_unit":11000,"taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"TRADEMASTER","bu":"GRB","cliente":"TRADEMASTER","modelo":"FIXO","volume_pa":"","valor_unit":10273.89,"taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"TRIBANCO AMIGÁVEL","bu":"GRB","cliente":"TRIBANCO","modelo":"FIXO","volume_pa":"","valor_unit":8500,"taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"TRIBANCO CONTENCIOSO","bu":"GRB","cliente":"TRIBANCO","modelo":"FIXO","volume_pa":"","valor_unit":5500,"taxa":"","obs":"=+ Variavel","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"TRIBANCO PJ","bu":"GRB","cliente":"TRIBANCO","modelo":"FIXO","volume_pa":"","valor_unit":8500,"taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"TRIBANCO RECEPTIVO","bu":"GRB","cliente":"TRIBANCO","modelo":"FIXO","volume_pa":"","valor_unit":7303.88625,"taxa":"","obs":"","diretor":"ALBERT DURAES","gestor":"","extra1":""},{"carteira":"VERISURE","bu":"GRB","cliente":"VERISURE","modelo":"FIXO","volume_pa":"","valor_unit":"","taxa":"","obs":"","diretor":"","gestor":"","extra1":""}];
+var filters={search:'',modelo:'',bu:'',diretor:'',cliente:'',kpi:'all'};
+var sortKey='carteira',sortDir=1;
+
+function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function fmtMoney(v){if(v===''||v===null||v===undefined)return '—';var n=parseFloat(v);if(isNaN(n))return esc(String(v));return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function fmtNum(v){if(v===''||v===null||v===undefined)return '—';var n=parseFloat(v);if(isNaN(n))return esc(String(v));return n.toLocaleString('pt-BR')}
+function fmtPct(v){if(v===''||v===null||v===undefined)return '—';var n=parseFloat(v);if(isNaN(n))return esc(String(v));return (n*100).toFixed(0)+'%'}
+
+function modeloBucket(m){
+  m=(m||'').toUpperCase();
+  if(m.indexOf('FIXO')>-1 && m.indexOf('SUCCESS')>-1)return 'HIBRIDO';
+  if(m.indexOf('HIBRIDO')>-1)return 'HIBRIDO';
+  if(m.indexOf('SUCCESS')>-1)return 'SUCCESS FEE';
+  if(m.indexOf('FIXO')>-1)return 'FIXO';
+  if(m.indexOf('DIGITAL')>-1)return 'DIGITAL';
+  if(m.indexOf('CRÉDITO')>-1||m.indexOf('CREDITO')>-1)return 'CRÉDITO';
+  return m||'—';
+}
+
+function modeloTag(m){
+  var b=modeloBucket(m);
+  if(b==='FIXO')return ['tag-fixo','Fixo'];
+  if(b==='SUCCESS FEE')return ['tag-success','Success Fee'];
+  if(b==='HIBRIDO')return ['tag-hibrido','Híbrido'];
+  if(b==='DIGITAL')return ['tag-digital','Digital'];
+  if(b==='CRÉDITO')return ['tag-credito','Crédito'];
+  return ['tag-fixo',esc(m)];
+}
+
+function buTag(b){
+  if(b==='INTERVALOR')return ['tag-bu-int','Intervalor'];
+  if(b==='GRB')return ['tag-bu-grb','GRB'];
+  return ['tag-fixo',esc(b)];
+}
+
+function compute(){
+  DATA.forEach(function(c){c._modelo_b=modeloBucket(c.modelo)});
+}
+
+function populateSelects(){
+  var modelos={},bus={},diretores={},clientes={};
+  DATA.forEach(function(c){
+    if(c._modelo_b)modelos[c._modelo_b]=1;
+    if(c.bu)bus[c.bu]=1;
+    if(c.diretor)diretores[c.diretor]=1;
+    if(c.cliente)clientes[c.cliente]=1;
+  });
+  function fill(id,obj){
+    var sel=document.getElementById(id);
+    Object.keys(obj).sort().forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent=k;sel.appendChild(o)});
+  }
+  fill('filterModelo',modelos);
+  fill('filterBU',bus);
+  fill('filterDiretor',diretores);
+  fill('filterCliente',clientes);
+}
+
+function updateKPIs(){
+  var counts={'FIXO':0,'SUCCESS FEE':0,'HIBRIDO':0,'DIGITAL':0,'CRÉDITO':0};
+  var totVol=0;
+  DATA.forEach(function(c){
+    if(counts[c._modelo_b]!==undefined)counts[c._modelo_b]++;
+    var v=parseFloat(c.volume_pa);
+    if(!isNaN(v))totVol+=v;
+  });
+  var total=DATA.length;
+  document.getElementById('k-fixo').textContent=counts['FIXO'];
+  document.getElementById('k-success').textContent=counts['SUCCESS FEE'];
+  document.getElementById('k-hibrido').textContent=counts['HIBRIDO'];
+  document.getElementById('k-digital').textContent=counts['DIGITAL'];
+  document.getElementById('k-credito').textContent=counts['CRÉDITO'];
+  document.getElementById('k-volume').textContent=totVol.toLocaleString('pt-BR');
+  document.getElementById('k-total').textContent=total;
+  function pct(n){return total?Math.round(n*100/total)+'%':'—'}
+  document.getElementById('kp-fixo').textContent=pct(counts['FIXO']);
+  document.getElementById('kp-success').textContent=pct(counts['SUCCESS FEE']);
+  document.getElementById('kp-hibrido').textContent=pct(counts['HIBRIDO']);
+  document.getElementById('kp-digital').textContent=pct(counts['DIGITAL']);
+  document.getElementById('kp-credito').textContent=pct(counts['CRÉDITO']);
+}
+
+function renderSplits(){
+  // Modelo
+  var modelos={'FIXO':0,'SUCCESS FEE':0,'HIBRIDO':0,'DIGITAL':0,'CRÉDITO':0};
+  DATA.forEach(function(c){if(modelos[c._modelo_b]!==undefined)modelos[c._modelo_b]++});
+  var maxM=Math.max.apply(null,Object.values(modelos));
+  var html='';
+  function row(name,n,cls,key,activeKey){
+    var pct=maxM?(n*100/maxM):0;
+    var active=filters.modelo===key?' active':'';
+    html+='<div class="split-row clickable'+active+'" data-key="'+key+'"><div class="split-name">'+name+'</div><div class="split-bar"><div class="split-bar-fill '+cls+'" style="width:'+Math.max(pct,3)+'%">'+(n>0?n:'')+'</div></div><div class="split-count">'+n+'</div></div>';
+  }
+  row('Fixo',modelos['FIXO'],'bar-fixo','FIXO');
+  row('Success Fee',modelos['SUCCESS FEE'],'bar-success','SUCCESS FEE');
+  row('Híbrido',modelos['HIBRIDO'],'bar-hibrido','HIBRIDO');
+  row('Digital',modelos['DIGITAL'],'bar-digital','DIGITAL');
+  row('Crédito',modelos['CRÉDITO'],'bar-credito','CRÉDITO');
+  document.getElementById('splitModelo').innerHTML=html;
+  document.querySelectorAll('#splitModelo .clickable').forEach(function(el){
+    el.addEventListener('click',function(){
+      var k=el.dataset.key;
+      filters.modelo=(filters.modelo===k?'':k);
+      document.getElementById('filterModelo').value=filters.modelo;
+      renderSplits();render();
+    });
+  });
+
+  // BU
+  var bus={};
+  DATA.forEach(function(c){if(c.bu)bus[c.bu]=(bus[c.bu]||0)+1});
+  var maxB=Math.max.apply(null,Object.values(bus).concat([0]));
+  html='';
+  Object.keys(bus).sort().forEach(function(b){
+    var n=bus[b];
+    var pct=maxB?(n*100/maxB):0;
+    var active=filters.bu===b?' active':'';
+    html+='<div class="split-row clickable'+active+'" data-key="'+esc(b)+'"><div class="split-name">'+esc(b)+'</div><div class="split-bar"><div class="split-bar-fill bar-bu" style="width:'+Math.max(pct,3)+'%">'+n+'</div></div><div class="split-count">'+n+'</div></div>';
+  });
+  document.getElementById('splitBU').innerHTML=html;
+  document.querySelectorAll('#splitBU .clickable').forEach(function(el){
+    el.addEventListener('click',function(){
+      var k=el.dataset.key;
+      filters.bu=(filters.bu===k?'':k);
+      document.getElementById('filterBU').value=filters.bu;
+      renderSplits();render();
+    });
+  });
+
+  // Diretor
+  var dirs={};
+  DATA.forEach(function(c){if(c.diretor)dirs[c.diretor]=(dirs[c.diretor]||0)+1});
+  var maxD=Math.max.apply(null,Object.values(dirs).concat([0]));
+  html='';
+  Object.keys(dirs).sort(function(a,b){return dirs[b]-dirs[a]}).forEach(function(d){
+    var n=dirs[d];
+    var pct=maxD?(n*100/maxD):0;
+    var active=filters.diretor===d?' active':'';
+    html+='<div class="split-row clickable'+active+'" data-key="'+esc(d)+'"><div class="split-name">'+esc(d)+'</div><div class="split-bar"><div class="split-bar-fill bar-diretor" style="width:'+Math.max(pct,3)+'%">'+n+'</div></div><div class="split-count">'+n+'</div></div>';
+  });
+  document.getElementById('splitDiretor').innerHTML=html;
+  document.querySelectorAll('#splitDiretor .clickable').forEach(function(el){
+    el.addEventListener('click',function(){
+      var k=el.dataset.key;
+      filters.diretor=(filters.diretor===k?'':k);
+      document.getElementById('filterDiretor').value=filters.diretor;
+      renderSplits();render();
+    });
+  });
+}
+
+function filtered(){
+  var list=DATA.filter(function(c){
+    if(filters.search){
+      var q=filters.search;
+      var hay=((c.carteira||'')+' '+(c.cliente||'')+' '+(c.obs||'')+' '+(c.modelo||'')).toLowerCase();
+      if(hay.indexOf(q)<0)return false;
+    }
+    if(filters.modelo && c._modelo_b!==filters.modelo)return false;
+    if(filters.bu && c.bu!==filters.bu)return false;
+    if(filters.diretor && c.diretor!==filters.diretor)return false;
+    if(filters.cliente && c.cliente!==filters.cliente)return false;
+    if(filters.kpi && filters.kpi!=='all'){
+      if(c._modelo_b!==filters.kpi)return false;
+    }
+    return true;
+  });
+  list.sort(function(a,b){
+    var av=a[sortKey],bv=b[sortKey];
+    if(av===''||av===null||av===undefined)av=sortDir===1?'￿':'';
+    if(bv===''||bv===null||bv===undefined)bv=sortDir===1?'￿':'';
+    var anum=parseFloat(av),bnum=parseFloat(bv);
+    if(!isNaN(anum)&&!isNaN(bnum))return (anum-bnum)*sortDir;
+    return String(av).localeCompare(String(bv))*sortDir;
+  });
+  return list;
+}
+
+function render(){
+  var list=filtered();
+  var totVol=0;
+  list.forEach(function(c){var v=parseFloat(c.volume_pa);if(!isNaN(v))totVol+=v});
+  document.getElementById('rowCount').textContent=list.length+' carteiras · '+totVol.toLocaleString('pt-BR')+' PAs';
+  if(list.length===0){
+    document.getElementById('tbody').innerHTML='<tr><td colspan="9" class="empty"><div class="empty-icon">🔍</div>Nenhuma carteira encontrada</td></tr>';
+    return;
+  }
+  var html='';
+  list.forEach(function(c){
+    var mt=modeloTag(c.modelo);
+    var bt=buTag(c.bu);
+    html+='<tr>'
+      +'<td class="carteira">'+esc(c.carteira)+'</td>'
+      +'<td class="cliente">'+esc(c.cliente)+'</td>'
+      +'<td><span class="tag '+bt[0]+'">'+bt[1]+'</span></td>'
+      +'<td><span class="tag '+mt[0]+'">'+mt[1]+'</span></td>'
+      +'<td class="num">'+fmtNum(c.volume_pa)+'</td>'
+      +'<td class="num">'+fmtMoney(c.valor_unit)+'</td>'
+      +'<td class="num">'+fmtPct(c.taxa)+'</td>'
+      +'<td>'+esc(c.diretor)+'</td>'
+      +'<td class="obs">'+esc(c.obs.substring(0,140))+(c.obs.length>140?'…':'')+'</td>'
+      +'</tr>';
+  });
+  document.getElementById('tbody').innerHTML=html;
+}
+
+function clearFilters(){
+  filters={search:'',modelo:'',bu:'',diretor:'',cliente:'',kpi:'all'};
+  document.getElementById('searchBox').value='';
+  document.getElementById('filterModelo').value='';
+  document.getElementById('filterBU').value='';
+  document.getElementById('filterDiretor').value='';
+  document.getElementById('filterCliente').value='';
+  document.querySelectorAll('.kpi').forEach(function(k){k.classList.remove('active')});
+  document.querySelector('[data-filter="all"]').classList.add('active');
+  renderSplits();render();
+}
+
+document.getElementById('searchBox').addEventListener('input',function(e){filters.search=e.target.value.toLowerCase().trim();render()});
+document.getElementById('filterModelo').addEventListener('change',function(e){filters.modelo=e.target.value;renderSplits();render()});
+document.getElementById('filterBU').addEventListener('change',function(e){filters.bu=e.target.value;renderSplits();render()});
+document.getElementById('filterDiretor').addEventListener('change',function(e){filters.diretor=e.target.value;renderSplits();render()});
+document.getElementById('filterCliente').addEventListener('change',function(e){filters.cliente=e.target.value;render()});
+document.querySelectorAll('.kpi[data-filter]').forEach(function(k){
+  k.addEventListener('click',function(){
+    document.querySelectorAll('.kpi').forEach(function(x){x.classList.remove('active')});
+    k.classList.add('active');
+    filters.kpi=k.dataset.filter;
+    render();
+  });
+});
+document.querySelectorAll('th[data-sort]').forEach(function(th){
+  th.addEventListener('click',function(){
+    var k=th.dataset.sort;
+    if(sortKey===k){sortDir=-sortDir}else{sortKey=k;sortDir=1}
+    document.querySelectorAll('th').forEach(function(x){x.classList.remove('sort-asc','sort-desc')});
+    th.classList.add(sortDir===1?'sort-asc':'sort-desc');
+    render();
+  });
+});
+
+var d=new Date();
+document.getElementById('todayDate').textContent=String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+compute();
+populateSelects();
+updateKPIs();
+renderSplits();
+document.querySelector('[data-filter="all"]').classList.add('active');
+render();
+</script>
+</body>
+</html>
