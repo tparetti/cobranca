@@ -201,7 +201,7 @@ tr:hover .row-actions{opacity:1}
       <div><label>Valor Unitário (R$)</label><input type="number" id="edValor" step="any" placeholder="0"></div>
     </div>
     <div class="modal-grid">
-      <div><label>Taxa (%)</label><input type="number" id="edTaxa" step="any" placeholder="ex: 0.05 = 5%"></div>
+      <div><label>Taxa ocupação PA</label><input type="number" id="edTaxa" step="any" placeholder="ex: 1.4"></div>
       <div><label>Diretor</label><input type="text" id="edDiretor" placeholder="ex: ALBERT DURAES"></div>
     </div>
     <label>Observação</label>
@@ -305,7 +305,7 @@ var editingId=null;
 function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function fmtMoney(v){if(v===''||v===null||v===undefined)return '—';var n=parseFloat(v);if(isNaN(n))return esc(String(v));return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function fmtNum(v){if(v===''||v===null||v===undefined)return '—';var n=parseFloat(v);if(isNaN(n))return esc(String(v));return n.toLocaleString('pt-BR')}
-function fmtPct(v){if(v===''||v===null||v===undefined)return '—';var n=parseFloat(v);if(isNaN(n))return esc(String(v));return (n*100).toFixed(0)+'%'}
+function fmtTaxa(v){if(v===''||v===null||v===undefined)return '—';var n=parseFloat(v);if(isNaN(n))return esc(String(v));return n.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:2})}
 
 function modeloBucket(m){
   m=(m||'').toUpperCase();
@@ -484,7 +484,7 @@ function render(){
       +'<td><span class="tag '+mt[0]+'">'+mt[1]+'</span></td>'
       +'<td class="num">'+fmtNum(c.volume_pa)+'</td>'
       +'<td class="num">'+fmtMoney(c.valor_unit)+'</td>'
-      +'<td class="num">'+fmtPct(c.taxa)+'</td>'
+      +'<td class="num">'+fmtTaxa(c.taxa)+'</td>'
       +'<td>'+esc(c.diretor)+'</td>'
       +'<td class="obs">'+esc((c.obs||'').substring(0,140))+((c.obs||'').length>140?'…':'')+'</td>'
       +'<td><div class="row-actions"><button class="icon-btn" onclick="event.stopPropagation();openEdit('+c.id+')" title="Editar">✎</button><button class="icon-btn del" onclick="event.stopPropagation();delRow('+c.id+')" title="Excluir">🗑</button></div></td>'
