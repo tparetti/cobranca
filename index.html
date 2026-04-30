@@ -161,13 +161,14 @@ tr:hover .row-actions{opacity:1}
   <div class="tbl-scroll">
     <table>
       <thead><tr>
-        <th data-sort="carteira">Carteira <span class="arrow">↕</span></th>
         <th data-sort="cliente">Cliente <span class="arrow">↕</span></th>
+        <th data-sort="carteira">Carteira <span class="arrow">↕</span></th>
         <th data-sort="bu">BU <span class="arrow">↕</span></th>
         <th data-sort="modelo">Modelo <span class="arrow">↕</span></th>
         <th data-sort="volume_pa" class="num">PAs <span class="arrow">↕</span></th>
         <th data-sort="valor_unit" class="num">Valor Unit. <span class="arrow">↕</span></th>
         <th data-sort="taxa" class="num">Taxa <span class="arrow">↕</span></th>
+        <th data-sort="margem" class="num">Margem <span class="arrow">↕</span></th>
         <th data-sort="diretor">Diretor <span class="arrow">↕</span></th>
         <th data-sort="obs">Observação <span class="arrow">↕</span></th>
         <th></th>
@@ -202,8 +203,9 @@ tr:hover .row-actions{opacity:1}
     </div>
     <div class="modal-grid">
       <div><label>Taxa ocupação PA</label><input type="number" id="edTaxa" step="any" placeholder="ex: 1.4"></div>
-      <div><label>Diretor</label><input type="text" id="edDiretor" placeholder="ex: ALBERT DURAES"></div>
+      <div><label>Margem (decimal)</label><input type="number" id="edMargem" step="any" placeholder="ex: 0.35 = 35%"></div>
     </div>
+    <label>Diretor</label><input type="text" id="edDiretor" placeholder="ex: ALBERT DURAES">
     <label>Observação</label>
     <textarea id="edObs" placeholder="Notas, contexto, pendências…"></textarea>
     <div class="modal-actions">
@@ -306,6 +308,8 @@ function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;'
 function fmtMoney(v){if(v===''||v===null||v===undefined)return '—';var n=parseFloat(v);if(isNaN(n))return esc(String(v));return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function fmtNum(v){if(v===''||v===null||v===undefined)return '—';var n=parseFloat(v);if(isNaN(n))return esc(String(v));return n.toLocaleString('pt-BR')}
 function fmtTaxa(v){if(v===''||v===null||v===undefined)return '—';var n=parseFloat(v);if(isNaN(n))return esc(String(v));return n.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:2})}
+function fmtMargem(v){if(v===''||v===null||v===undefined)return '—';var n=parseFloat(v);if(isNaN(n))return esc(String(v));return (n*100).toFixed(1).replace('.',',')+'%'}
+function margemColor(v){if(v===''||v===null||v===undefined)return '#94a3b8';var n=parseFloat(v);if(isNaN(n))return '#94a3b8';if(n<0)return '#dc2626';if(n<0.2)return '#d97706';if(n<0.4)return '#ca8a04';return '#059669'}
 
 function modeloBucket(m){
   m=(m||'').toUpperCase();
@@ -471,20 +475,21 @@ function render(){
   list.forEach(function(c){var v=parseFloat(c.volume_pa);if(!isNaN(v))totVol+=v});
   document.getElementById('rowCount').textContent=list.length+' carteiras · '+totVol.toLocaleString('pt-BR')+' PAs';
   if(list.length===0){
-    document.getElementById('tbody').innerHTML='<tr><td colspan="10" class="empty"><div class="empty-icon">🔍</div>Nenhuma carteira encontrada</td></tr>';
+    document.getElementById('tbody').innerHTML='<tr><td colspan="11" class="empty"><div class="empty-icon">🔍</div>Nenhuma carteira encontrada</td></tr>';
     return;
   }
   var html='';
   list.forEach(function(c){
     var mt=modeloTag(c.modelo),bt=buTag(c.bu);
     html+='<tr ondblclick="openEdit('+c.id+')">'
-      +'<td class="carteira">'+esc(c.carteira)+'</td>'
       +'<td class="cliente">'+esc(c.cliente)+'</td>'
+      +'<td class="carteira">'+esc(c.carteira)+'</td>'
       +'<td><span class="tag '+bt[0]+'">'+bt[1]+'</span></td>'
       +'<td><span class="tag '+mt[0]+'">'+mt[1]+'</span></td>'
       +'<td class="num">'+fmtNum(c.volume_pa)+'</td>'
       +'<td class="num">'+fmtMoney(c.valor_unit)+'</td>'
       +'<td class="num">'+fmtTaxa(c.taxa)+'</td>'
+      +'<td class="num" style="font-weight:700;color:'+margemColor(c.margem)+'">'+fmtMargem(c.margem)+'</td>'
       +'<td>'+esc(c.diretor)+'</td>'
       +'<td class="obs">'+esc((c.obs||'').substring(0,140))+((c.obs||'').length>140?'…':'')+'</td>'
       +'<td><div class="row-actions"><button class="icon-btn" onclick="event.stopPropagation();openEdit('+c.id+')" title="Editar">✎</button><button class="icon-btn del" onclick="event.stopPropagation();delRow('+c.id+')" title="Excluir">🗑</button></div></td>'
@@ -518,6 +523,7 @@ function openEdit(id){
   document.getElementById('edVolume').value=r&&r.volume_pa!==''?r.volume_pa:'';
   document.getElementById('edValor').value=r&&r.valor_unit!==''?r.valor_unit:'';
   document.getElementById('edTaxa').value=r&&r.taxa!==''?r.taxa:'';
+  document.getElementById('edMargem').value=r&&r.margem!==''&&r.margem!=null?r.margem:'';
   document.getElementById('edDiretor').value=r?r.diretor||'':'';
   document.getElementById('edObs').value=r?r.obs||'':'';
   document.getElementById('editModal').classList.add('show');
@@ -532,6 +538,7 @@ function saveEdit(){
     volume_pa:document.getElementById('edVolume').value,
     valor_unit:document.getElementById('edValor').value,
     taxa:document.getElementById('edTaxa').value,
+    margem:document.getElementById('edMargem').value,
     diretor:document.getElementById('edDiretor').value.trim().toUpperCase(),
     obs:document.getElementById('edObs').value.trim()
   };
