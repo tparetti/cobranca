@@ -23,9 +23,8 @@ h1{font-size:22px;font-weight:800;color:#0f172a}
 #syncBtn.sync-loading{border-color:#0891b2;color:#0891b2;background:#ecfeff}
 .add-btn{background:#0891b2;color:#fff;border:none;border-radius:10px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer;transition:.2s}
 .add-btn:hover{background:#0e7490;transform:translateY(-1px);box-shadow:0 4px 12px rgba(8,145,178,.3)}
-.kpis{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:20px}
-@media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:680px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;max-width:500px}
+@media(max-width:680px){.kpis{grid-template-columns:1fr 1fr}}
 .kpi{background:#fff;border:1px solid #e8edf3;border-radius:12px;padding:14px 16px;cursor:pointer;transition:.2s}
 .kpi:hover{box-shadow:0 4px 14px rgba(0,0,0,.05);transform:translateY(-1px)}
 .kpi.active{border-color:#0891b2;box-shadow:0 0 0 3px rgba(8,145,178,.12)}
@@ -39,6 +38,36 @@ h1{font-size:22px;font-weight:800;color:#0f172a}
 .kpi-credito .kpi-num{color:#d97706}
 .kpi-volume .kpi-num{color:#0f172a;font-size:20px}
 .kpi-total .kpi-num{color:#0891b2}
+
+/* Receita por Tipo (hero section) */
+.tipo-section{margin-bottom:18px}
+.tipo-section-title{font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:10px;padding-left:4px}
+.tipo-grid{display:grid;grid-template-columns:repeat(3,2fr) repeat(2,1fr);gap:10px}
+@media(max-width:1100px){.tipo-grid{grid-template-columns:1fr 1fr 1fr}}
+@media(max-width:680px){.tipo-grid{grid-template-columns:1fr 1fr}}
+.tipo-card{background:#fff;border:1px solid #e8edf3;border-radius:14px;padding:16px 18px;cursor:pointer;transition:.2s;position:relative;overflow:hidden}
+.tipo-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.06);transform:translateY(-1px)}
+.tipo-card.active{box-shadow:0 0 0 3px rgba(8,145,178,.18)}
+.tipo-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:#cbd5e1}
+.tipo-fixo::before{background:linear-gradient(90deg,#3730a3,#4f46e5)}
+.tipo-success::before{background:linear-gradient(90deg,#059669,#10b981)}
+.tipo-hibrido::before{background:linear-gradient(90deg,#9333ea,#a855f7)}
+.tipo-digital::before{background:linear-gradient(90deg,#0891b2,#06b6d4)}
+.tipo-credito::before{background:linear-gradient(90deg,#d97706,#f59e0b)}
+.tipo-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.tipo-name{font-size:13px;font-weight:800;color:#0f172a;display:flex;align-items:center;gap:6px}
+.tipo-pct{font-size:10.5px;color:#64748b;font-weight:600;background:#f1f5f9;border-radius:999px;padding:2px 8px}
+.tipo-revenue{font-size:22px;font-weight:800;color:#0f172a;line-height:1;margin-bottom:2px;font-variant-numeric:tabular-nums}
+.tipo-revenue-label{font-size:10px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.3px;margin-bottom:10px}
+.tipo-stats{display:flex;gap:12px;font-size:11px;color:#475569}
+.tipo-stats b{font-weight:800;color:#0f172a}
+.tipo-margem{display:inline-block;margin-top:6px;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:#f0fdf4;color:#059669}
+.tipo-margem.warn{background:#fffbeb;color:#d97706}
+.tipo-margem.bad{background:#fef2f2;color:#dc2626}
+.tipo-card.compact{padding:12px 14px}
+.tipo-card.compact .tipo-revenue{font-size:18px}
+.tipo-card.compact .tipo-revenue-label{margin-bottom:6px}
+.tipo-card.compact .tipo-stats{font-size:10.5px}
 .filters{background:#fff;border:1px solid #e8edf3;border-radius:12px;padding:14px;margin-bottom:14px;display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:10px}
 @media(max-width:1100px){.filters{grid-template-columns:1fr 1fr}}
 .filters input,.filters select{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px;color:#1e293b;outline:none;font-family:inherit}
@@ -128,12 +157,12 @@ tr:hover .row-actions{opacity:1}
   </div>
 </header>
 
+<div class="tipo-section">
+  <div class="tipo-section-title">💰 Receita por Tipo (alinhado ao forecast)</div>
+  <div class="tipo-grid" id="tipoGrid"></div>
+</div>
+
 <div class="kpis">
-  <div class="kpi kpi-fixo" data-filter="FIXO"><div class="kpi-num" id="k-fixo">0</div><div class="kpi-label">📌 Fixo</div><div class="kpi-pct" id="kp-fixo">—</div></div>
-  <div class="kpi kpi-success" data-filter="SUCCESS FEE"><div class="kpi-num" id="k-success">0</div><div class="kpi-label">🎯 Success Fee</div><div class="kpi-pct" id="kp-success">—</div></div>
-  <div class="kpi kpi-hibrido" data-filter="HIBRIDO"><div class="kpi-num" id="k-hibrido">0</div><div class="kpi-label">🔀 Híbrido</div><div class="kpi-pct" id="kp-hibrido">—</div></div>
-  <div class="kpi kpi-digital" data-filter="DIGITAL"><div class="kpi-num" id="k-digital">0</div><div class="kpi-label">💻 Digital</div><div class="kpi-pct" id="kp-digital">—</div></div>
-  <div class="kpi kpi-credito" data-filter="CRÉDITO"><div class="kpi-num" id="k-credito">0</div><div class="kpi-label">💳 Crédito</div><div class="kpi-pct" id="kp-credito">—</div></div>
   <div class="kpi kpi-volume"><div class="kpi-num" id="k-volume">0</div><div class="kpi-label">👥 Volume PAs</div><div class="kpi-pct" id="kp-volume">total alocado</div></div>
   <div class="kpi kpi-total" data-filter="all"><div class="kpi-num" id="k-total">0</div><div class="kpi-label">📊 Carteiras</div><div class="kpi-pct">total</div></div>
 </div>
@@ -343,27 +372,82 @@ function populateSelects(){
   fill('filterCliente',clientes,'Cliente: todos');
 }
 
+function fmtBRL(v){
+  if(v==null||isNaN(v))return '—';
+  if(v>=1000000)return 'R$ '+(v/1000000).toFixed(2).replace('.',',')+' M';
+  if(v>=1000)return 'R$ '+(v/1000).toFixed(0)+' k';
+  return 'R$ '+Math.round(v).toLocaleString('pt-BR');
+}
+
 function updateKPIs(){
-  var counts={'FIXO':0,'SUCCESS FEE':0,'HIBRIDO':0,'DIGITAL':0,'CRÉDITO':0};
   var totVol=0;
   state.rows.forEach(function(c){
-    if(counts[c._modelo_b]!==undefined)counts[c._modelo_b]++;
     var v=parseFloat(c.volume_pa);if(!isNaN(v))totVol+=v;
   });
-  var total=state.rows.length;
-  document.getElementById('k-fixo').textContent=counts['FIXO'];
-  document.getElementById('k-success').textContent=counts['SUCCESS FEE'];
-  document.getElementById('k-hibrido').textContent=counts['HIBRIDO'];
-  document.getElementById('k-digital').textContent=counts['DIGITAL'];
-  document.getElementById('k-credito').textContent=counts['CRÉDITO'];
   document.getElementById('k-volume').textContent=totVol.toLocaleString('pt-BR');
-  document.getElementById('k-total').textContent=total;
-  function pct(n){return total?Math.round(n*100/total)+'%':'—'}
-  document.getElementById('kp-fixo').textContent=pct(counts['FIXO']);
-  document.getElementById('kp-success').textContent=pct(counts['SUCCESS FEE']);
-  document.getElementById('kp-hibrido').textContent=pct(counts['HIBRIDO']);
-  document.getElementById('kp-digital').textContent=pct(counts['DIGITAL']);
-  document.getElementById('kp-credito').textContent=pct(counts['CRÉDITO']);
+  document.getElementById('k-total').textContent=state.rows.length;
+  renderTipoSection();
+}
+
+function renderTipoSection(){
+  // Agrupa por tipo: count, volume PA, R$ mensal estimado, margem média
+  var TIPOS=['FIXO','SUCCESS FEE','HIBRIDO','DIGITAL','CRÉDITO'];
+  var data={};
+  TIPOS.forEach(function(t){data[t]={count:0,pas:0,receita:0,margemSum:0,margemCount:0}});
+  state.rows.forEach(function(c){
+    var t=c._modelo_b;
+    if(!data[t])return;
+    data[t].count++;
+    var pa=parseFloat(c.volume_pa)||0;
+    var unit=parseFloat(c.valor_unit)||0;
+    data[t].pas+=pa;
+    if(pa>0&&unit>0)data[t].receita+=pa*unit;
+    var m=parseFloat(c.margem);
+    if(!isNaN(m)){data[t].margemSum+=m;data[t].margemCount++;}
+  });
+  var totalCarteiras=state.rows.length;
+  var labels={
+    'FIXO':{nome:'📌 Fixo',cls:'tipo-fixo',filter:'FIXO'},
+    'SUCCESS FEE':{nome:'🎯 Success Fee',cls:'tipo-success',filter:'SUCCESS FEE'},
+    'HIBRIDO':{nome:'🔀 Híbrido',cls:'tipo-hibrido',filter:'HIBRIDO'},
+    'DIGITAL':{nome:'💻 Digital',cls:'tipo-digital',filter:'DIGITAL',compact:true},
+    'CRÉDITO':{nome:'💳 Crédito',cls:'tipo-credito',filter:'CRÉDITO',compact:true}
+  };
+  var html='';
+  TIPOS.forEach(function(t){
+    var d=data[t];
+    var l=labels[t];
+    var pct=totalCarteiras?Math.round(d.count*100/totalCarteiras):0;
+    var margemAvg=d.margemCount?d.margemSum/d.margemCount:null;
+    var margemCls=margemAvg==null?'':(margemAvg<0.2?'bad':margemAvg<0.3?'warn':'');
+    var margemTxt=margemAvg==null?'':(margemAvg*100).toFixed(0)+'% margem';
+    var active=filters.modelo===l.filter?' active':'';
+    var compact=l.compact?' compact':'';
+    var receitaLabel=t==='SUCCESS FEE'?'Receita variável (depende de meta)':'R$ Mensal Estimado';
+    var receitaVal=t==='SUCCESS FEE'?'—':fmtBRL(d.receita);
+    html+='<div class="tipo-card '+l.cls+compact+active+'" data-filter="'+l.filter+'">'
+      +'<div class="tipo-head"><div class="tipo-name">'+l.nome+'</div><div class="tipo-pct">'+pct+'%</div></div>'
+      +'<div class="tipo-revenue">'+receitaVal+'</div>'
+      +'<div class="tipo-revenue-label">'+receitaLabel+'</div>'
+      +'<div class="tipo-stats">'
+        +'<span><b>'+d.count+'</b> carteira'+(d.count!==1?'s':'')+'</span>'
+        +'<span><b>'+d.pas.toLocaleString('pt-BR')+'</b> PAs</span>'
+      +'</div>'
+      +(margemTxt?'<div class="tipo-margem '+margemCls+'">'+margemTxt+'</div>':'')
+      +'</div>';
+  });
+  var grid=document.getElementById('tipoGrid');
+  if(grid){
+    grid.innerHTML=html;
+    grid.querySelectorAll('.tipo-card').forEach(function(el){
+      el.addEventListener('click',function(){
+        var f=el.dataset.filter;
+        filters.modelo=(filters.modelo===f?'':f);
+        document.getElementById('filterModelo').value=filters.modelo;
+        renderTipoSection();renderSplits();render();
+      });
+    });
+  }
 }
 
 function renderSplits(){
@@ -493,7 +577,7 @@ function clearFilters(){
   document.getElementById('filterCliente').value='';
   document.querySelectorAll('.kpi').forEach(function(k){k.classList.remove('active')});
   document.querySelector('[data-filter="all"]').classList.add('active');
-  renderSplits();render();
+  renderTipoSection();renderSplits();render();
 }
 
 // ==== CRUD ====
@@ -557,7 +641,7 @@ function delRow(id){
 
 // ==== Wire ====
 document.getElementById('searchBox').addEventListener('input',function(e){filters.search=e.target.value.toLowerCase().trim();render()});
-document.getElementById('filterModelo').addEventListener('change',function(e){filters.modelo=e.target.value;renderSplits();render()});
+document.getElementById('filterModelo').addEventListener('change',function(e){filters.modelo=e.target.value;renderTipoSection();renderSplits();render()});
 document.getElementById('filterBU').addEventListener('change',function(e){filters.bu=e.target.value;renderSplits();render()});
 document.getElementById('filterDiretor').addEventListener('change',function(e){filters.diretor=e.target.value;renderSplits();render()});
 document.getElementById('filterCliente').addEventListener('change',function(e){filters.cliente=e.target.value;render()});
