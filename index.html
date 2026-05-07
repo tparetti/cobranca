@@ -222,8 +222,15 @@ tr:hover .row-actions{opacity:1}
 // ==== Cloud sync (GitHub API) ====
 var GH_REPO='tparetti/cobranca';
 var GH_FILE='data.json';
-var GH_TK=['ghp','_a6bwhyP','8twuUU3y1','TyEo7xZq4RdO','iQ3rTOMo'].join('');
+var GH_BRANCH='main';
 var GH_API='https://api.github.com/repos/'+GH_REPO+'/contents/'+GH_FILE;
+var GH_RAW='https://raw.githubusercontent.com/'+GH_REPO+'/'+GH_BRANCH+'/'+GH_FILE;
+function ghToken(){return localStorage.getItem('gh_token')||''}
+function setGhToken(){
+  var cur=ghToken();
+  var t=prompt('Cole o GitHub Personal Access Token (fine-grained, contents:write em '+GH_REPO+'). Salvo só neste navegador.',cur);
+  if(t!==null){localStorage.setItem('gh_token',t.trim());_fileSha=null;showSync('ok');}
+}
 
 var state={rows:[],nextId:1,ts:0};
 var _fileSha=null,_loaded=false,_syncing=false,_saveTimer=null;
@@ -244,8 +251,10 @@ function scheduleSave(){
 
 function saveToCloud(){
   if(!_loaded)return;
+  var tk=ghToken();
+  if(!tk){showSync('err');alert('Token do GitHub não configurado. Clique no botão de sync e cole seu PAT.');return}
   if(!_fileSha){
-    fetch(GH_API,{headers:{'Authorization':'Bearer '+GH_TK}})
+    fetch(GH_API,{headers:{'Authorization':'Bearer '+tk}})
       .then(function(r){return r.json()})
       .then(function(d){_fileSha=d.sha||null;doSave()})
       .catch(function(){doSave()});
@@ -253,12 +262,14 @@ function saveToCloud(){
 }
 
 function doSave(){
+  var tk=ghToken();
+  if(!tk){showSync('err');return}
   var content=btoa(unescape(encodeURIComponent(JSON.stringify(state,null,2))));
-  var body={message:'update cobranca',content:content};
+  var body={message:'update cobranca',content:content,branch:GH_BRANCH};
   if(_fileSha)body.sha=_fileSha;
   fetch(GH_API,{
     method:'PUT',
-    headers:{'Authorization':'Bearer '+GH_TK,'Content-Type':'application/json'},
+    headers:{'Authorization':'Bearer '+tk,'Content-Type':'application/json'},
     body:JSON.stringify(body)
   }).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
     .then(function(d){if(d.content)_fileSha=d.content.sha;showSync('ok')})
@@ -272,13 +283,11 @@ function doSave(){
 function loadFromCloud(silent){
   if(_syncing)return;_syncing=true;
   if(!silent)showSync('loading');
-  fetch(GH_API+'?ts='+Date.now(),{headers:{'Authorization':'Bearer '+GH_TK}})
-    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
-    .then(function(d){
+  fetch(GH_RAW+'?ts='+Date.now(),{cache:'no-store'})
+    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text()})
+    .then(function(raw){
       _syncing=false;
-      if(d.sha)_fileSha=d.sha;
-      if(!d.content){_loaded=true;render();showSync('ok');return}
-      var raw=decodeURIComponent(escape(atob(d.content.replace(/\n/g,''))));
+      if(!raw){_loaded=true;render();showSync('ok');return}
       var data=JSON.parse(raw);
       var localTs=(state&&state.ts)||0;
       var remoteTs=(data&&data.ts)||0;
@@ -288,7 +297,17 @@ function loadFromCloud(silent){
       if(!state.nextId)state.nextId=1;
       _loaded=true;
       compute();populateSelects();updateKPIs();renderSplits();render();
-      showSync('ok');
+      var tk=ghToken();
+      if(tk && !_fileSha){
+        fetch(GH_API,{headers:{'Authorization':'Bearer '+tk}})
+          .then(function(r){return r.ok?r.json():null})
+          .then(function(d){if(d&&d.sha)_fileSha=d.sha});
+      }
+      showSync(tk?'ok':'err');
+      if(!tk){
+        var el=document.getElementById('syncBtn');
+        if(el)el.textContent='⚠ configure o token';
+      }
     }).catch(function(e){
       _syncing=false;
       console.log('Load error',e);
@@ -297,7 +316,11 @@ function loadFromCloud(silent){
     });
 }
 
-function forceSync(){saveToCloud();setTimeout(function(){loadFromCloud(false)},700)}
+function forceSync(){
+  if(!ghToken()){setGhToken();if(!ghToken())return}
+  saveToCloud();
+  setTimeout(function(){loadFromCloud(false)},700);
+}
 
 // ==== UI helpers ====
 var filters={search:'',modelo:'',bu:'',diretor:'',cliente:'',kpi:'all'};
