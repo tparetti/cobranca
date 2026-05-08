@@ -191,12 +191,10 @@ tr:hover .row-actions{opacity:1}
     <table>
       <thead><tr>
         <th data-sort="cliente">Cliente <span class="arrow">↕</span></th>
-        <th data-sort="carteira">Carteira <span class="arrow">↕</span></th>
+        <th data-sort="carteira">Contrato / Carteira <span class="arrow">↕</span></th>
         <th data-sort="bu">BU <span class="arrow">↕</span></th>
-        <th data-sort="modelo">Modelo <span class="arrow">↕</span></th>
-        <th data-sort="volume_pa" class="num">PAs <span class="arrow">↕</span></th>
-        <th data-sort="valor_unit" class="num">Valor Unit. <span class="arrow">↕</span></th>
-        <th data-sort="taxa" class="num">Taxa <span class="arrow">↕</span></th>
+        <th data-sort="modelo">Produto <span class="arrow">↕</span></th>
+        <th data-sort="receita_mensal" class="num">Receita Mensal <span class="arrow">↕</span></th>
         <th data-sort="margem" class="num">Margem <span class="arrow">↕</span></th>
         <th data-sort="diretor">Diretor <span class="arrow">↕</span></th>
         <th data-sort="obs">Observação <span class="arrow">↕</span></th>
@@ -254,11 +252,7 @@ tr:hover .row-actions{opacity:1}
       </optgroup>
     </select>
     <div class="modal-grid">
-      <div><label>Volume PAs / AGVs</label><input type="number" id="edVolume" step="any" placeholder="0"></div>
-      <div><label>Valor Unitário (R$)</label><input type="number" id="edValor" step="any" placeholder="0"></div>
-    </div>
-    <div class="modal-grid">
-      <div><label>Taxa ocupação PA</label><input type="number" id="edTaxa" step="any" placeholder="ex: 1.4"></div>
+      <div><label>Receita Mensal (R$)</label><input type="number" id="edReceita" step="any" placeholder="0"></div>
       <div><label>Margem (decimal)</label><input type="number" id="edMargem" step="any" placeholder="ex: 0.35 = 35%"></div>
     </div>
     <label>Diretor</label><input type="text" id="edDiretor" placeholder="ex: ALBERT DURAES">
@@ -433,22 +427,21 @@ function updateKPIs(){
 }
 
 function renderTipoSection(){
-  // Agrupa por tipo: count, volume PA, R$ mensal estimado, margem média
+  // Usa receita_mensal real do forecast
   var TIPOS=['FIXO','SUCCESS FEE','HIBRIDO','DIGITAL','CRÉDITO'];
   var data={};
-  TIPOS.forEach(function(t){data[t]={count:0,pas:0,receita:0,margemSum:0,margemCount:0}});
+  TIPOS.forEach(function(t){data[t]={count:0,receita:0,margemSum:0,margemCount:0}});
+  var totalReceita=0;
   state.rows.forEach(function(c){
     var t=c._modelo_b;
+    var rec=parseFloat(c.receita_mensal)||0;
+    totalReceita+=rec;
     if(!data[t])return;
     data[t].count++;
-    var pa=parseFloat(c.volume_pa)||0;
-    var unit=parseFloat(c.valor_unit)||0;
-    data[t].pas+=pa;
-    if(pa>0&&unit>0)data[t].receita+=pa*unit;
+    data[t].receita+=rec;
     var m=parseFloat(c.margem);
     if(!isNaN(m)){data[t].margemSum+=m;data[t].margemCount++;}
   });
-  var totalCarteiras=state.rows.length;
   var labels={
     'FIXO':{nome:'📌 Fixo',cls:'tipo-fixo',filter:'FIXO'},
     'SUCCESS FEE':{nome:'🎯 Success Fee',cls:'tipo-success',filter:'SUCCESS FEE'},
@@ -460,21 +453,18 @@ function renderTipoSection(){
   TIPOS.forEach(function(t){
     var d=data[t];
     var l=labels[t];
-    var pct=totalCarteiras?Math.round(d.count*100/totalCarteiras):0;
+    var pct=totalReceita?Math.round(d.receita*100/totalReceita):0;
     var margemAvg=d.margemCount?d.margemSum/d.margemCount:null;
     var margemCls=margemAvg==null?'':(margemAvg<0.2?'bad':margemAvg<0.3?'warn':'');
     var margemTxt=margemAvg==null?'':(margemAvg*100).toFixed(0)+'% margem';
     var active=filters.modelo===l.filter?' active':'';
     var compact=l.compact?' compact':'';
-    var receitaLabel=t==='SUCCESS FEE'?'Receita variável (depende de meta)':'R$ Mensal Estimado';
-    var receitaVal=t==='SUCCESS FEE'?'—':fmtBRL(d.receita);
     html+='<div class="tipo-card '+l.cls+compact+active+'" data-filter="'+l.filter+'">'
-      +'<div class="tipo-head"><div class="tipo-name">'+l.nome+'</div><div class="tipo-pct">'+pct+'%</div></div>'
-      +'<div class="tipo-revenue">'+receitaVal+'</div>'
-      +'<div class="tipo-revenue-label">'+receitaLabel+'</div>'
+      +'<div class="tipo-head"><div class="tipo-name">'+l.nome+'</div><div class="tipo-pct">'+pct+'% receita</div></div>'
+      +'<div class="tipo-revenue">'+fmtBRL(d.receita)+'</div>'
+      +'<div class="tipo-revenue-label">faturamento mensal</div>'
       +'<div class="tipo-stats">'
-        +'<span><b>'+d.count+'</b> carteira'+(d.count!==1?'s':'')+'</span>'
-        +'<span><b>'+d.pas.toLocaleString('pt-BR')+'</b> PAs</span>'
+        +'<span><b>'+d.count+'</b> contrato'+(d.count!==1?'s':'')+'</span>'
       +'</div>'
       +(margemTxt?'<div class="tipo-margem '+margemCls+'">'+margemTxt+'</div>':'')
       +'</div>';
@@ -494,38 +484,23 @@ function renderTipoSection(){
 }
 
 function renderSplits(){
-  var modelos={'FIXO':0,'SUCCESS FEE':0,'HIBRIDO':0,'DIGITAL':0,'CRÉDITO':0};
-  state.rows.forEach(function(c){if(modelos[c._modelo_b]!==undefined)modelos[c._modelo_b]++});
-  var maxM=Math.max.apply(null,Object.values(modelos).concat([0]));
-  var html='';
-  function row(name,n,cls,key){
-    var pct=maxM?(n*100/maxM):0;
-    var active=filters.modelo===key?' active':'';
-    html+='<div class="split-row clickable'+active+'" data-key="'+key+'"><div class="split-name">'+name+'</div><div class="split-bar"><div class="split-bar-fill '+cls+'" style="width:'+Math.max(pct,3)+'%">'+(n>0?n:'')+'</div></div><div class="split-count">'+n+'</div></div>';
-  }
-  row('Fixo',modelos['FIXO'],'bar-fixo','FIXO');
-  row('Success Fee',modelos['SUCCESS FEE'],'bar-success','SUCCESS FEE');
-  row('Híbrido',modelos['HIBRIDO'],'bar-hibrido','HIBRIDO');
-  row('Digital',modelos['DIGITAL'],'bar-digital','DIGITAL');
-  row('Crédito',modelos['CRÉDITO'],'bar-credito','CRÉDITO');
-  document.getElementById('splitModelo').innerHTML=html;
-  document.querySelectorAll('#splitModelo .clickable').forEach(function(el){
-    el.addEventListener('click',function(){
-      var k=el.dataset.key;
-      filters.modelo=(filters.modelo===k?'':k);
-      document.getElementById('filterModelo').value=filters.modelo;
-      renderSplits();render();
-    });
-  });
-
+  // BU split: receita por BU
   var bus={};
-  state.rows.forEach(function(c){if(c.bu)bus[c.bu]=(bus[c.bu]||0)+1});
-  var maxB=Math.max.apply(null,Object.values(bus).concat([0]));
-  html='';
-  Object.keys(bus).sort().forEach(function(b){
-    var n=bus[b],pct=maxB?(n*100/maxB):0;
+  state.rows.forEach(function(c){
+    if(!c.bu)return;
+    if(!bus[c.bu])bus[c.bu]={count:0,receita:0};
+    bus[c.bu].count++;
+    bus[c.bu].receita+=parseFloat(c.receita_mensal)||0;
+  });
+  var maxB=Math.max.apply(null,Object.keys(bus).map(function(k){return bus[k].receita}).concat([0]));
+  var html='';
+  Object.keys(bus).sort(function(a,b){return bus[b].receita-bus[a].receita}).forEach(function(b){
+    var d=bus[b],pct=maxB?(d.receita*100/maxB):0;
     var active=filters.bu===b?' active':'';
-    html+='<div class="split-row clickable'+active+'" data-key="'+esc(b)+'"><div class="split-name">'+esc(b)+'</div><div class="split-bar"><div class="split-bar-fill bar-bu" style="width:'+Math.max(pct,3)+'%">'+n+'</div></div><div class="split-count">'+n+'</div></div>';
+    html+='<div class="split-row clickable'+active+'" data-key="'+esc(b)+'">'
+      +'<div class="split-name">'+esc(b)+'</div>'
+      +'<div class="split-bar"><div class="split-bar-fill bar-bu" style="width:'+Math.max(pct,3)+'%">'+fmtBRL(d.receita)+'</div></div>'
+      +'<div class="split-count">'+d.count+'</div></div>';
   });
   document.getElementById('splitBU').innerHTML=html;
   document.querySelectorAll('#splitBU .clickable').forEach(function(el){
@@ -537,14 +512,23 @@ function renderSplits(){
     });
   });
 
+  // Diretor split: receita por diretor
   var dirs={};
-  state.rows.forEach(function(c){if(c.diretor)dirs[c.diretor]=(dirs[c.diretor]||0)+1});
-  var maxD=Math.max.apply(null,Object.values(dirs).concat([0]));
+  state.rows.forEach(function(c){
+    if(!c.diretor)return;
+    if(!dirs[c.diretor])dirs[c.diretor]={count:0,receita:0};
+    dirs[c.diretor].count++;
+    dirs[c.diretor].receita+=parseFloat(c.receita_mensal)||0;
+  });
+  var maxD=Math.max.apply(null,Object.keys(dirs).map(function(k){return dirs[k].receita}).concat([0]));
   html='';
-  Object.keys(dirs).sort(function(a,b){return dirs[b]-dirs[a]}).forEach(function(d){
-    var n=dirs[d],pct=maxD?(n*100/maxD):0;
+  Object.keys(dirs).sort(function(a,b){return dirs[b].receita-dirs[a].receita}).forEach(function(d){
+    var info=dirs[d],pct=maxD?(info.receita*100/maxD):0;
     var active=filters.diretor===d?' active':'';
-    html+='<div class="split-row clickable'+active+'" data-key="'+esc(d)+'"><div class="split-name">'+esc(d)+'</div><div class="split-bar"><div class="split-bar-fill bar-diretor" style="width:'+Math.max(pct,3)+'%">'+n+'</div></div><div class="split-count">'+n+'</div></div>';
+    html+='<div class="split-row clickable'+active+'" data-key="'+esc(d)+'">'
+      +'<div class="split-name">'+esc(d)+'</div>'
+      +'<div class="split-bar"><div class="split-bar-fill bar-diretor" style="width:'+Math.max(pct,3)+'%">'+fmtBRL(info.receita)+'</div></div>'
+      +'<div class="split-count">'+info.count+'</div></div>';
   });
   document.getElementById('splitDiretor').innerHTML=html;
   document.querySelectorAll('#splitDiretor .clickable').forEach(function(el){
@@ -555,6 +539,40 @@ function renderSplits(){
       renderSplits();render();
     });
   });
+
+  // Cliente split (top 10): receita por cliente
+  var clis={};
+  state.rows.forEach(function(c){
+    if(!c.cliente)return;
+    if(!clis[c.cliente])clis[c.cliente]={count:0,receita:0};
+    clis[c.cliente].count++;
+    clis[c.cliente].receita+=parseFloat(c.receita_mensal)||0;
+  });
+  var maxC=Math.max.apply(null,Object.keys(clis).map(function(k){return clis[k].receita}).concat([0]));
+  html='';
+  Object.keys(clis).sort(function(a,b){return clis[b].receita-clis[a].receita}).slice(0,10).forEach(function(c){
+    var info=clis[c],pct=maxC?(info.receita*100/maxC):0;
+    var active=filters.cliente===c?' active':'';
+    html+='<div class="split-row clickable'+active+'" data-key="'+esc(c)+'">'
+      +'<div class="split-name">'+esc(c)+'</div>'
+      +'<div class="split-bar"><div class="split-bar-fill bar-bu" style="width:'+Math.max(pct,3)+'%">'+fmtBRL(info.receita)+'</div></div>'
+      +'<div class="split-count">'+info.count+'</div></div>';
+  });
+  // Render cliente em splitModelo (que vamos repurpor pra Top Clientes)
+  var modeloEl=document.getElementById('splitModelo');
+  if(modeloEl){
+    modeloEl.innerHTML=html;
+    var titleEl=modeloEl.parentElement.querySelector('h3');
+    if(titleEl)titleEl.textContent='🏆 Top Clientes';
+    modeloEl.querySelectorAll('.clickable').forEach(function(el){
+      el.addEventListener('click',function(){
+        var k=el.dataset.key;
+        filters.cliente=(filters.cliente===k?'':k);
+        document.getElementById('filterCliente').value=filters.cliente;
+        renderSplits();render();
+      });
+    });
+  }
 }
 
 function filtered(){
@@ -584,24 +602,23 @@ function filtered(){
 
 function render(){
   var list=filtered();
-  var totVol=0;
-  list.forEach(function(c){var v=parseFloat(c.volume_pa);if(!isNaN(v))totVol+=v});
-  document.getElementById('rowCount').textContent=list.length+' carteiras · '+totVol.toLocaleString('pt-BR')+' PAs';
+  var totReceita=0;
+  list.forEach(function(c){var v=parseFloat(c.receita_mensal);if(!isNaN(v))totReceita+=v});
+  document.getElementById('rowCount').textContent=list.length+' contratos · '+fmtBRL(totReceita)+'/mês';
   if(list.length===0){
-    document.getElementById('tbody').innerHTML='<tr><td colspan="11" class="empty"><div class="empty-icon">🔍</div>Nenhuma carteira encontrada</td></tr>';
+    document.getElementById('tbody').innerHTML='<tr><td colspan="9" class="empty"><div class="empty-icon">🔍</div>Nenhum contrato encontrado</td></tr>';
     return;
   }
   var html='';
   list.forEach(function(c){
     var mt=modeloTag(c.modelo),bt=buTag(c.bu);
+    var receita=parseFloat(c.receita_mensal)||0;
     html+='<tr ondblclick="openEdit('+c.id+')">'
       +'<td class="cliente">'+esc(c.cliente)+'</td>'
       +'<td class="carteira">'+esc(c.carteira)+'</td>'
       +'<td><span class="tag '+bt[0]+'">'+bt[1]+'</span></td>'
       +'<td><span class="tag '+mt[0]+'">'+mt[1]+'</span></td>'
-      +'<td class="num">'+fmtNum(c.volume_pa)+'</td>'
-      +'<td class="num">'+fmtMoney(c.valor_unit)+'</td>'
-      +'<td class="num">'+fmtTaxa(c.taxa)+'</td>'
+      +'<td class="num" style="font-weight:700;color:#0f172a">'+fmtBRL(receita)+'</td>'
       +'<td class="num" style="font-weight:700;color:'+margemColor(c.margem)+'">'+fmtMargem(c.margem)+'</td>'
       +'<td>'+esc(c.diretor)+'</td>'
       +'<td class="obs">'+esc((c.obs||'').substring(0,140))+((c.obs||'').length>140?'…':'')+'</td>'
@@ -632,10 +649,8 @@ function openEdit(id){
   document.getElementById('edCarteira').value=r?r.carteira||'':'';
   document.getElementById('edCliente').value=r?r.cliente||'':'';
   document.getElementById('edBU').value=r?r.bu||'INTERVALOR':'INTERVALOR';
-  document.getElementById('edModelo').value=r?r.modelo||'FIXO':'FIXO';
-  document.getElementById('edVolume').value=r&&r.volume_pa!==''?r.volume_pa:'';
-  document.getElementById('edValor').value=r&&r.valor_unit!==''?r.valor_unit:'';
-  document.getElementById('edTaxa').value=r&&r.taxa!==''?r.taxa:'';
+  document.getElementById('edModelo').value=r?r.modelo||'P.A FIXA':'P.A FIXA';
+  document.getElementById('edReceita').value=r&&r.receita_mensal!==''&&r.receita_mensal!=null?r.receita_mensal:'';
   document.getElementById('edMargem').value=r&&r.margem!==''&&r.margem!=null?r.margem:'';
   document.getElementById('edDiretor').value=r?r.diretor||'':'';
   document.getElementById('edObs').value=r?r.obs||'':'';
@@ -648,9 +663,7 @@ function saveEdit(){
     cliente:document.getElementById('edCliente').value.trim().toUpperCase(),
     bu:document.getElementById('edBU').value,
     modelo:document.getElementById('edModelo').value,
-    volume_pa:document.getElementById('edVolume').value,
-    valor_unit:document.getElementById('edValor').value,
-    taxa:document.getElementById('edTaxa').value,
+    receita_mensal:parseFloat(document.getElementById('edReceita').value)||0,
     margem:document.getElementById('edMargem').value,
     diretor:document.getElementById('edDiretor').value.trim().toUpperCase(),
     obs:document.getElementById('edObs').value.trim()
