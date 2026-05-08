@@ -217,14 +217,41 @@ tr:hover .row-actions{opacity:1}
       <div><label>Cliente</label><input type="text" id="edCliente" placeholder="ex: RIACHUELO"></div>
       <div><label>BU</label><select id="edBU"><option value="INTERVALOR">INTERVALOR</option><option value="GRB">GRB</option></select></div>
     </div>
-    <label>Modelo de Remuneração</label>
+    <label>Produto / Modelo (alinhado ao forecast)</label>
     <select id="edModelo">
-      <option value="FIXO">FIXO</option>
-      <option value="SUCCESS FEE">SUCCESS FEE</option>
-      <option value="HIBRIDO">HIBRIDO</option>
-      <option value="DIGITAL">DIGITAL</option>
-      <option value="CRÉDITO">CRÉDITO</option>
-      <option value="FIXO + SUCCESS FEE">FIXO + SUCCESS FEE</option>
+      <optgroup label="📌 Fixo">
+        <option value="P.A FIXA">P.A FIXA</option>
+        <option value="FIXO">FIXO</option>
+        <option value="BOT FIXO">BOT FIXO</option>
+      </optgroup>
+      <optgroup label="🎯 Success Fee">
+        <option value="SUCESSO">SUCESSO</option>
+        <option value="VARIÁVEL">VARIÁVEL</option>
+        <option value="MESA DE PERFORMANCE">MESA DE PERFORMANCE</option>
+      </optgroup>
+      <optgroup label="🔀 Híbrido">
+        <option value="COBRANÇA HÍBRIDA">COBRANÇA HÍBRIDA</option>
+        <option value="TELECOBRANÇA">TELECOBRANÇA</option>
+        <option value="PROMOTORA">PROMOTORA</option>
+        <option value="HIBRIDO">HIBRIDO</option>
+      </optgroup>
+      <optgroup label="💻 Digital">
+        <option value="COBRANÇA DIGITAL">COBRANÇA DIGITAL</option>
+        <option value="AGENTE DIGITAL DE VOZ">AGENTE DIGITAL DE VOZ</option>
+        <option value="WATCHDOC">WATCHDOC</option>
+        <option value="RPA">RPA</option>
+        <option value="COBRANÇA MASSIFICADA">COBRANÇA MASSIFICADA</option>
+      </optgroup>
+      <optgroup label="💳 Crédito">
+        <option value="ANÁLISE DE CRÉDITO">ANÁLISE DE CRÉDITO</option>
+      </optgroup>
+      <optgroup label="📦 Outros">
+        <option value="COBRANÇA B2B">COBRANÇA B2B</option>
+        <option value="COBRANÇA B2C">COBRANÇA B2C</option>
+        <option value="TELECOM">TELECOM</option>
+        <option value="CONTENCIOSO">CONTENCIOSO</option>
+        <option value="NÃO ALOCADO">NÃO ALOCADO</option>
+      </optgroup>
     </select>
     <div class="modal-grid">
       <div><label>Volume PAs / AGVs</label><input type="number" id="edVolume" step="any" placeholder="0"></div>
@@ -327,23 +354,39 @@ function fmtMargem(v){if(v===''||v===null||v===undefined)return '—';var n=pars
 function margemColor(v){if(v===''||v===null||v===undefined)return '#94a3b8';var n=parseFloat(v);if(isNaN(n))return '#94a3b8';if(n<0)return '#dc2626';if(n<0.2)return '#d97706';if(n<0.4)return '#ca8a04';return '#059669'}
 
 function modeloBucket(m){
-  m=(m||'').toUpperCase();
-  if(m.indexOf('FIXO')>-1&&m.indexOf('SUCCESS')>-1)return 'HIBRIDO';
-  if(m.indexOf('HIBRIDO')>-1)return 'HIBRIDO';
-  if(m.indexOf('SUCCESS')>-1)return 'SUCCESS FEE';
-  if(m.indexOf('FIXO')>-1)return 'FIXO';
+  m=(m||'').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  // Crédito (verifica antes pra capturar "ANALISE DE CREDITO")
+  if(m.indexOf('CREDITO')>-1)return 'CRÉDITO';
+  // Híbrido — produtos do forecast: COBRANÇA HÍBRIDA, TELECOBRANÇA, PROMOTORA, HIBRIDO
+  if(m.indexOf('HIBRID')>-1)return 'HIBRIDO';
+  if(m.indexOf('TELECOBRANCA')>-1||m==='TELECOBRANÇA'.toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,''))return 'HIBRIDO';
+  if(m==='PROMOTORA')return 'HIBRIDO';
+  // Composto (FIXO + SUCCESS) → Híbrido
+  if(m.indexOf('FIXO')>-1&&(m.indexOf('SUCCESS')>-1||m.indexOf('SUCESSO')>-1))return 'HIBRIDO';
+  // Digital — COBRANÇA DIGITAL, AGENTE DIGITAL DE VOZ, WATCHDOC, RPA, COBRANÇA MASSIFICADA, BOT (não-fixo)
   if(m.indexOf('DIGITAL')>-1)return 'DIGITAL';
-  if(m.indexOf('CRÉDITO')>-1||m.indexOf('CREDITO')>-1)return 'CRÉDITO';
+  if(m==='WATCHDOC'||m==='RPA')return 'DIGITAL';
+  if(m.indexOf('MASSIFICADA')>-1)return 'DIGITAL';
+  // Success Fee — SUCESSO, VARIÁVEL, MESA DE PERFORMANCE
+  if(m.indexOf('SUCESSO')>-1||m.indexOf('SUCCESS')>-1)return 'SUCCESS FEE';
+  if(m==='VARIAVEL')return 'SUCCESS FEE';
+  if(m.indexOf('PERFORMANCE')>-1)return 'SUCCESS FEE';
+  // Fixo — P.A FIXA, FIXO, BOT FIXO
+  if(m.indexOf('FIXO')>-1||m.indexOf('FIXA')>-1)return 'FIXO';
+  // Outros (B2B, B2C, TELECOM, CONTENCIOSO, NÃO ALOCADO)
+  if(m==='COBRANCA B2B'||m==='COBRANCA B2C'||m==='TELECOM'||m==='CONTENCIOSO'||m==='NAO ALOCADO')return 'OUTROS';
   return m||'—';
 }
 function modeloTag(m){
   var b=modeloBucket(m);
-  if(b==='FIXO')return ['tag-fixo','Fixo'];
-  if(b==='SUCCESS FEE')return ['tag-success','Success Fee'];
-  if(b==='HIBRIDO')return ['tag-hibrido','Híbrido'];
-  if(b==='DIGITAL')return ['tag-digital','Digital'];
-  if(b==='CRÉDITO')return ['tag-credito','Crédito'];
-  return ['tag-fixo',esc(m)];
+  // Mostra o nome real do produto (m) com a cor da categoria
+  var label=esc(m||'—');
+  if(b==='FIXO')return ['tag-fixo',label];
+  if(b==='SUCCESS FEE')return ['tag-success',label];
+  if(b==='HIBRIDO')return ['tag-hibrido',label];
+  if(b==='DIGITAL')return ['tag-digital',label];
+  if(b==='CRÉDITO')return ['tag-credito',label];
+  return ['tag-fixo',label];
 }
 function buTag(b){
   if(b==='INTERVALOR')return ['tag-bu-int','Intervalor'];
