@@ -79,10 +79,11 @@ h1{font-size:22px;font-weight:800;color:#0f172a}
 .split-card{background:#fff;border:1px solid #e8edf3;border-radius:12px;padding:14px 18px}
 .split-card h3{font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;font-weight:700}
 .split-bars{display:flex;flex-direction:column;gap:6px}
-.split-row{display:flex;align-items:center;gap:10px;font-size:12px}
-.split-name{min-width:90px;font-weight:600;color:#475569;font-size:11px}
-.split-bar{flex:1;height:18px;background:#f1f5f9;border-radius:5px;overflow:hidden;position:relative}
-.split-bar-fill{height:100%;border-radius:5px;display:flex;align-items:center;padding-left:8px;color:#fff;font-size:10px;font-weight:700;min-width:24px}
+.split-row{display:flex;align-items:center;gap:8px;font-size:12px}
+.split-name{flex:0 0 110px;font-weight:600;color:#475569;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.split-bar{flex:1;height:18px;background:#f1f5f9;border-radius:5px;overflow:hidden;position:relative;min-width:50px}
+.split-bar-fill{height:100%;border-radius:5px;background-clip:padding-box;min-width:6px}
+.split-value{flex:0 0 auto;font-weight:700;color:#0f172a;font-size:11px;white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}
 .bar-fixo{background:linear-gradient(90deg,#3730a3,#4f46e5)}
 .bar-success{background:linear-gradient(90deg,#059669,#10b981)}
 .bar-hibrido{background:linear-gradient(90deg,#9333ea,#a855f7)}
@@ -498,8 +499,9 @@ function renderSplits(){
     var d=bus[b],pct=maxB?(d.receita*100/maxB):0;
     var active=filters.bu===b?' active':'';
     html+='<div class="split-row clickable'+active+'" data-key="'+esc(b)+'">'
-      +'<div class="split-name">'+esc(b)+'</div>'
-      +'<div class="split-bar"><div class="split-bar-fill bar-bu" style="width:'+Math.max(pct,3)+'%">'+fmtBRL(d.receita)+'</div></div>'
+      +'<div class="split-name" title="'+esc(b)+'">'+esc(b)+'</div>'
+      +'<div class="split-bar"><div class="split-bar-fill bar-bu" style="width:'+Math.max(pct,3)+'%"></div></div>'
+      +'<div class="split-value">'+fmtBRL(d.receita)+'</div>'
       +'<div class="split-count">'+d.count+'</div></div>';
   });
   document.getElementById('splitBU').innerHTML=html;
@@ -526,8 +528,9 @@ function renderSplits(){
     var info=dirs[d],pct=maxD?(info.receita*100/maxD):0;
     var active=filters.diretor===d?' active':'';
     html+='<div class="split-row clickable'+active+'" data-key="'+esc(d)+'">'
-      +'<div class="split-name">'+esc(d)+'</div>'
-      +'<div class="split-bar"><div class="split-bar-fill bar-diretor" style="width:'+Math.max(pct,3)+'%">'+fmtBRL(info.receita)+'</div></div>'
+      +'<div class="split-name" title="'+esc(d)+'">'+esc(d)+'</div>'
+      +'<div class="split-bar"><div class="split-bar-fill bar-diretor" style="width:'+Math.max(pct,3)+'%"></div></div>'
+      +'<div class="split-value">'+fmtBRL(info.receita)+'</div>'
       +'<div class="split-count">'+info.count+'</div></div>';
   });
   document.getElementById('splitDiretor').innerHTML=html;
@@ -554,8 +557,9 @@ function renderSplits(){
     var info=clis[c],pct=maxC?(info.receita*100/maxC):0;
     var active=filters.cliente===c?' active':'';
     html+='<div class="split-row clickable'+active+'" data-key="'+esc(c)+'">'
-      +'<div class="split-name">'+esc(c)+'</div>'
-      +'<div class="split-bar"><div class="split-bar-fill bar-bu" style="width:'+Math.max(pct,3)+'%">'+fmtBRL(info.receita)+'</div></div>'
+      +'<div class="split-name" title="'+esc(c)+'">'+esc(c)+'</div>'
+      +'<div class="split-bar"><div class="split-bar-fill bar-bu" style="width:'+Math.max(pct,3)+'%"></div></div>'
+      +'<div class="split-value">'+fmtBRL(info.receita)+'</div>'
       +'<div class="split-count">'+info.count+'</div></div>';
   });
   // Render cliente em splitModelo (que vamos repurpor pra Top Clientes)
