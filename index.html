@@ -42,8 +42,8 @@ h1{font-size:22px;font-weight:800;color:#0f172a}
 /* Receita por Tipo (hero section) */
 .tipo-section{margin-bottom:18px}
 .tipo-section-title{font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:10px;padding-left:4px}
-.tipo-grid{display:grid;grid-template-columns:repeat(3,2fr) repeat(2,1fr);gap:10px}
-@media(max-width:1100px){.tipo-grid{grid-template-columns:1fr 1fr 1fr}}
+.tipo-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+@media(max-width:1300px){.tipo-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:680px){.tipo-grid{grid-template-columns:1fr 1fr}}
 .tipo-card{background:#fff;border:1px solid #e8edf3;border-radius:14px;padding:16px 18px;cursor:pointer;transition:.2s;position:relative;overflow:hidden}
 .tipo-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.06);transform:translateY(-1px)}
@@ -64,10 +64,14 @@ h1{font-size:22px;font-weight:800;color:#0f172a}
 .tipo-margem{display:inline-block;margin-top:6px;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:#f0fdf4;color:#059669}
 .tipo-margem.warn{background:#fffbeb;color:#d97706}
 .tipo-margem.bad{background:#fef2f2;color:#dc2626}
-.tipo-card.compact{padding:12px 14px}
-.tipo-card.compact .tipo-revenue{font-size:18px}
-.tipo-card.compact .tipo-revenue-label{margin-bottom:6px}
-.tipo-card.compact .tipo-stats{font-size:10.5px}
+.tipo-card.tipo-total::before{background:linear-gradient(90deg,#0891b2,#06b6d4)}
+.tipo-card.tipo-total{background:linear-gradient(135deg,#0891b2 0%,#06b6d4 100%);color:#fff}
+.tipo-card.tipo-total::before{display:none}
+.tipo-card.tipo-total .tipo-name,.tipo-card.tipo-total .tipo-revenue{color:#fff}
+.tipo-card.tipo-total .tipo-pct{background:rgba(255,255,255,.2);color:#fff}
+.tipo-card.tipo-total .tipo-revenue-label{color:rgba(255,255,255,.85)}
+.tipo-card.tipo-total .tipo-stats{color:rgba(255,255,255,.95)}
+.tipo-card.tipo-total .tipo-stats b{color:#fff}
 .filters{background:#fff;border:1px solid #e8edf3;border-radius:12px;padding:14px;margin-bottom:14px;display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:10px}
 @media(max-width:1100px){.filters{grid-template-columns:1fr 1fr}}
 .filters input,.filters select{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px;color:#1e293b;outline:none;font-family:inherit}
@@ -191,10 +195,6 @@ tr:hover .row-actions{opacity:1}
   <div class="tipo-grid" id="tipoGrid"></div>
 </div>
 
-<div class="kpis">
-  <div class="kpi kpi-volume"><div class="kpi-num" id="k-volume">0</div><div class="kpi-label">👥 Volume PAs</div><div class="kpi-pct" id="kp-volume">total alocado</div></div>
-  <div class="kpi kpi-total" data-filter="all"><div class="kpi-num" id="k-total">0</div><div class="kpi-label">📊 Carteiras</div><div class="kpi-pct">total</div></div>
-</div>
 
 <div class="split">
   <div class="split-card"><h3>🧾 Modelo de Remuneração</h3><div class="split-bars" id="splitModelo"></div></div>
@@ -486,15 +486,7 @@ function getReceita(c){
   return m;
 }
 
-function updateKPIs(){
-  var totVol=0;
-  state.rows.forEach(function(c){
-    var v=parseFloat(c.volume_pa);if(!isNaN(v))totVol+=v;
-  });
-  document.getElementById('k-volume').textContent=totVol.toLocaleString('pt-BR');
-  document.getElementById('k-total').textContent=state.rows.length;
-  renderTipoSection();
-}
+function updateKPIs(){renderTipoSection()}
 
 function renderTipoSection(){
   var TIPOS=['FIXO','SUCCESS FEE','HIBRIDO','DIGITAL','CRÉDITO'];
@@ -515,10 +507,11 @@ function renderTipoSection(){
     'FIXO':{nome:'📌 Fixo',cls:'tipo-fixo',filter:'FIXO'},
     'SUCCESS FEE':{nome:'🎯 Success Fee',cls:'tipo-success',filter:'SUCCESS FEE'},
     'HIBRIDO':{nome:'🔀 Híbrido',cls:'tipo-hibrido',filter:'HIBRIDO'},
-    'DIGITAL':{nome:'💻 Digital',cls:'tipo-digital',filter:'DIGITAL',compact:true},
-    'CRÉDITO':{nome:'💳 Crédito',cls:'tipo-credito',filter:'CRÉDITO',compact:true}
+    'DIGITAL':{nome:'💻 Digital',cls:'tipo-digital',filter:'DIGITAL'},
+    'CRÉDITO':{nome:'💳 Crédito',cls:'tipo-credito',filter:'CRÉDITO'}
   };
   var html='';
+  var lbl=period==='ano'?'faturamento 2026':'fat. '+MESES_CURTOS[period]+'/26';
   TIPOS.forEach(function(t){
     var d=data[t];
     var l=labels[t];
@@ -527,10 +520,8 @@ function renderTipoSection(){
     var margemCls=margemAvg==null?'':(margemAvg<0.2?'bad':margemAvg<0.3?'warn':'');
     var margemTxt=margemAvg==null?'':(margemAvg*100).toFixed(0)+'% margem';
     var active=filters.modelo===l.filter?' active':'';
-    var compact=l.compact?' compact':'';
-    var lbl=period==='ano'?'faturamento 2026':'fat. '+MESES_CURTOS[period]+'/26';
-    html+='<div class="tipo-card '+l.cls+compact+active+'" data-filter="'+l.filter+'">'
-      +'<div class="tipo-head"><div class="tipo-name">'+l.nome+'</div><div class="tipo-pct">'+pct+'% receita</div></div>'
+    html+='<div class="tipo-card '+l.cls+active+'" data-filter="'+l.filter+'">'
+      +'<div class="tipo-head"><div class="tipo-name">'+l.nome+'</div><div class="tipo-pct">'+pct+'%</div></div>'
       +'<div class="tipo-revenue">'+fmtBRL(d.receita)+'</div>'
       +'<div class="tipo-revenue-label">'+lbl+'</div>'
       +'<div class="tipo-stats">'
@@ -539,14 +530,30 @@ function renderTipoSection(){
       +(margemTxt?'<div class="tipo-margem '+margemCls+'">'+margemTxt+'</div>':'')
       +'</div>';
   });
+  // Card TOTAL
+  var totalCount=state.rows.length;
+  html+='<div class="tipo-card tipo-total'+(filters.kpi==='all'?' active':'')+'" data-filter="all">'
+    +'<div class="tipo-head"><div class="tipo-name">📊 Total</div><div class="tipo-pct">100%</div></div>'
+    +'<div class="tipo-revenue">'+fmtBRL(totalReceita)+'</div>'
+    +'<div class="tipo-revenue-label">'+lbl+'</div>'
+    +'<div class="tipo-stats">'
+      +'<span><b>'+totalCount+'</b> contratos</span>'
+    +'</div>'
+  +'</div>';
   var grid=document.getElementById('tipoGrid');
   if(grid){
     grid.innerHTML=html;
     grid.querySelectorAll('.tipo-card').forEach(function(el){
       el.addEventListener('click',function(){
         var f=el.dataset.filter;
-        filters.modelo=(filters.modelo===f?'':f);
-        document.getElementById('filterModelo').value=filters.modelo;
+        if(f==='all'){
+          // TOTAL card: limpa filtro de modelo
+          filters.modelo='';
+          document.getElementById('filterModelo').value='';
+        }else{
+          filters.modelo=(filters.modelo===f?'':f);
+          document.getElementById('filterModelo').value=filters.modelo;
+        }
         renderTipoSection();renderSplits();render();
       });
     });
@@ -711,8 +718,6 @@ function clearFilters(){
   document.getElementById('filterBU').value='';
   document.getElementById('filterDiretor').value='';
   document.getElementById('filterCliente').value='';
-  document.querySelectorAll('.kpi').forEach(function(k){k.classList.remove('active')});
-  document.querySelector('[data-filter="all"]').classList.add('active');
   renderTipoSection();renderSplits();render();
 }
 
@@ -777,13 +782,6 @@ document.getElementById('filterModelo').addEventListener('change',function(e){fi
 document.getElementById('filterBU').addEventListener('change',function(e){filters.bu=e.target.value;renderSplits();render()});
 document.getElementById('filterDiretor').addEventListener('change',function(e){filters.diretor=e.target.value;renderSplits();render()});
 document.getElementById('filterCliente').addEventListener('change',function(e){filters.cliente=e.target.value;render()});
-document.querySelectorAll('.kpi[data-filter]').forEach(function(k){
-  k.addEventListener('click',function(){
-    document.querySelectorAll('.kpi').forEach(function(x){x.classList.remove('active')});
-    k.classList.add('active');
-    filters.kpi=k.dataset.filter;render();
-  });
-});
 document.querySelectorAll('th[data-sort]').forEach(function(th){
   th.addEventListener('click',function(){
     var k=th.dataset.sort;
@@ -798,7 +796,6 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeEdit()}
 
 var d=new Date();
 document.getElementById('todayDate').textContent=String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
-document.querySelector('[data-filter="all"]').classList.add('active');
 // Wire period pills
 document.querySelectorAll('.period-pill').forEach(function(b){
   b.addEventListener('click',function(){
