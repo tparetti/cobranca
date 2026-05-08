@@ -145,6 +145,16 @@ tr:hover .row-actions{opacity:1}
 .btn-ghost:hover{background:#e2e8f0}
 .btn-danger{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
 .btn-danger:hover{background:#fee2e2}
+
+/* Period selector */
+.period-bar{background:#fff;border:1px solid #e8edf3;border-radius:12px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.period-label{font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+.period-pill{background:#f1f5f9;border:1px solid transparent;border-radius:999px;padding:6px 12px;font-size:11.5px;font-weight:700;color:#475569;cursor:pointer;transition:.15s;text-transform:uppercase;letter-spacing:.3px}
+.period-pill:hover{background:#e0e7ff;color:#3730a3}
+.period-pill.active{background:#0891b2;color:#fff;border-color:#0891b2;box-shadow:0 2px 8px rgba(8,145,178,.25)}
+.period-pill.year{background:#fef3c7;color:#92400e}
+.period-pill.year.active{background:#d97706;color:#fff;border-color:#d97706;box-shadow:0 2px 8px rgba(217,119,6,.3)}
+.period-current{background:#dcfce7;color:#166534;font-size:10.5px;padding:3px 9px;border-radius:999px;font-weight:700;margin-left:auto}
 </style>
 </head>
 <body>
@@ -158,8 +168,26 @@ tr:hover .row-actions{opacity:1}
   </div>
 </header>
 
+<div class="period-bar">
+  <span class="period-label">📅 Período:</span>
+  <button class="period-pill" data-period="0">Jan</button>
+  <button class="period-pill" data-period="1">Fev</button>
+  <button class="period-pill" data-period="2">Mar</button>
+  <button class="period-pill" data-period="3">Abr</button>
+  <button class="period-pill" data-period="4">Mai</button>
+  <button class="period-pill" data-period="5">Jun</button>
+  <button class="period-pill" data-period="6">Jul</button>
+  <button class="period-pill" data-period="7">Ago</button>
+  <button class="period-pill" data-period="8">Set</button>
+  <button class="period-pill" data-period="9">Out</button>
+  <button class="period-pill" data-period="10">Nov</button>
+  <button class="period-pill" data-period="11">Dez</button>
+  <button class="period-pill year" data-period="ano">📊 Ano 2026</button>
+  <span class="period-current" id="periodInfo">—</span>
+</div>
+
 <div class="tipo-section">
-  <div class="tipo-section-title">💰 Receita por Tipo (alinhado ao forecast)</div>
+  <div class="tipo-section-title">💰 Receita por Tipo <span id="tipoSectionPeriod" style="color:#475569;font-weight:600"></span></div>
   <div class="tipo-grid" id="tipoGrid"></div>
 </div>
 
@@ -195,7 +223,7 @@ tr:hover .row-actions{opacity:1}
         <th data-sort="carteira">Contrato / Carteira <span class="arrow">↕</span></th>
         <th data-sort="bu">BU <span class="arrow">↕</span></th>
         <th data-sort="modelo">Produto <span class="arrow">↕</span></th>
-        <th data-sort="receita_mensal" class="num">Receita Mensal <span class="arrow">↕</span></th>
+        <th data-sort="_receita" class="num">Receita <span class="arrow">↕</span></th>
         <th data-sort="margem" class="num">Margem <span class="arrow">↕</span></th>
         <th data-sort="diretor">Diretor <span class="arrow">↕</span></th>
         <th data-sort="obs">Observação <span class="arrow">↕</span></th>
@@ -417,6 +445,47 @@ function fmtBRL(v){
   return 'R$ '+Math.round(v).toLocaleString('pt-BR');
 }
 
+// === Período ===
+var MESES_NOMES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+var MESES_CURTOS=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+var period=(function(){
+  var saved=localStorage.getItem('cobranca_period');
+  if(saved!==null)return saved==='ano'?'ano':parseInt(saved);
+  return new Date().getMonth(); // mês atual
+})();
+
+function setPeriod(p){
+  period=p;
+  localStorage.setItem('cobranca_period',String(p));
+  document.querySelectorAll('.period-pill').forEach(function(b){
+    b.classList.toggle('active', String(b.dataset.period)===String(p));
+  });
+  var info=document.getElementById('periodInfo');
+  var hoje=new Date();
+  if(p==='ano'){
+    info.textContent='Ano consolidado 2026';
+  }else{
+    var mes=MESES_NOMES[p];
+    var atual=p===hoje.getMonth();
+    info.textContent=mes+' 2026'+(atual?' (atual)':'');
+  }
+  var sub=document.getElementById('tipoSectionPeriod');
+  if(sub)sub.textContent=p==='ano'?'· acumulado 2026':'· '+MESES_NOMES[p];
+  renderTipoSection();renderSplits();render();
+}
+
+// Receita do contrato no período selecionado
+function getReceita(c){
+  if(c.valores_mes&&Array.isArray(c.valores_mes)){
+    if(period==='ano')return c.valores_mes.reduce(function(a,b){return a+(b||0)},0);
+    return c.valores_mes[period]||0;
+  }
+  // Fallback: receita_mensal antiga
+  var m=parseFloat(c.receita_mensal)||0;
+  if(period==='ano')return m*12;
+  return m;
+}
+
 function updateKPIs(){
   var totVol=0;
   state.rows.forEach(function(c){
@@ -428,14 +497,13 @@ function updateKPIs(){
 }
 
 function renderTipoSection(){
-  // Usa receita_mensal real do forecast
   var TIPOS=['FIXO','SUCCESS FEE','HIBRIDO','DIGITAL','CRÉDITO'];
   var data={};
   TIPOS.forEach(function(t){data[t]={count:0,receita:0,margemSum:0,margemCount:0}});
   var totalReceita=0;
   state.rows.forEach(function(c){
     var t=c._modelo_b;
-    var rec=parseFloat(c.receita_mensal)||0;
+    var rec=getReceita(c);
     totalReceita+=rec;
     if(!data[t])return;
     data[t].count++;
@@ -460,10 +528,11 @@ function renderTipoSection(){
     var margemTxt=margemAvg==null?'':(margemAvg*100).toFixed(0)+'% margem';
     var active=filters.modelo===l.filter?' active':'';
     var compact=l.compact?' compact':'';
+    var lbl=period==='ano'?'faturamento 2026':'fat. '+MESES_CURTOS[period]+'/26';
     html+='<div class="tipo-card '+l.cls+compact+active+'" data-filter="'+l.filter+'">'
       +'<div class="tipo-head"><div class="tipo-name">'+l.nome+'</div><div class="tipo-pct">'+pct+'% receita</div></div>'
       +'<div class="tipo-revenue">'+fmtBRL(d.receita)+'</div>'
-      +'<div class="tipo-revenue-label">faturamento mensal</div>'
+      +'<div class="tipo-revenue-label">'+lbl+'</div>'
       +'<div class="tipo-stats">'
         +'<span><b>'+d.count+'</b> contrato'+(d.count!==1?'s':'')+'</span>'
       +'</div>'
@@ -491,7 +560,7 @@ function renderSplits(){
     if(!c.bu)return;
     if(!bus[c.bu])bus[c.bu]={count:0,receita:0};
     bus[c.bu].count++;
-    bus[c.bu].receita+=parseFloat(c.receita_mensal)||0;
+    bus[c.bu].receita+=getReceita(c);
   });
   var maxB=Math.max.apply(null,Object.keys(bus).map(function(k){return bus[k].receita}).concat([0]));
   var html='';
@@ -520,7 +589,7 @@ function renderSplits(){
     if(!c.diretor)return;
     if(!dirs[c.diretor])dirs[c.diretor]={count:0,receita:0};
     dirs[c.diretor].count++;
-    dirs[c.diretor].receita+=parseFloat(c.receita_mensal)||0;
+    dirs[c.diretor].receita+=getReceita(c);
   });
   var maxD=Math.max.apply(null,Object.keys(dirs).map(function(k){return dirs[k].receita}).concat([0]));
   html='';
@@ -549,7 +618,7 @@ function renderSplits(){
     if(!c.cliente)return;
     if(!clis[c.cliente])clis[c.cliente]={count:0,receita:0};
     clis[c.cliente].count++;
-    clis[c.cliente].receita+=parseFloat(c.receita_mensal)||0;
+    clis[c.cliente].receita+=getReceita(c);
   });
   var maxC=Math.max.apply(null,Object.keys(clis).map(function(k){return clis[k].receita}).concat([0]));
   html='';
@@ -594,7 +663,9 @@ function filtered(){
     return true;
   });
   list.sort(function(a,b){
-    var av=a[sortKey],bv=b[sortKey];
+    var av,bv;
+    if(sortKey==='_receita'){av=getReceita(a);bv=getReceita(b);return (av-bv)*sortDir}
+    av=a[sortKey];bv=b[sortKey];
     if(av===''||av==null)av=sortDir===1?'￿':'';
     if(bv===''||bv==null)bv=sortDir===1?'￿':'';
     var anum=parseFloat(av),bnum=parseFloat(bv);
@@ -607,8 +678,9 @@ function filtered(){
 function render(){
   var list=filtered();
   var totReceita=0;
-  list.forEach(function(c){var v=parseFloat(c.receita_mensal);if(!isNaN(v))totReceita+=v});
-  document.getElementById('rowCount').textContent=list.length+' contratos · '+fmtBRL(totReceita)+'/mês';
+  list.forEach(function(c){totReceita+=getReceita(c)});
+  var sufix=period==='ano'?' (ano 2026)':' ('+MESES_CURTOS[period]+'/26)';
+  document.getElementById('rowCount').textContent=list.length+' contratos · '+fmtBRL(totReceita)+sufix;
   if(list.length===0){
     document.getElementById('tbody').innerHTML='<tr><td colspan="9" class="empty"><div class="empty-icon">🔍</div>Nenhum contrato encontrado</td></tr>';
     return;
@@ -616,7 +688,7 @@ function render(){
   var html='';
   list.forEach(function(c){
     var mt=modeloTag(c.modelo),bt=buTag(c.bu);
-    var receita=parseFloat(c.receita_mensal)||0;
+    var receita=getReceita(c);
     html+='<tr ondblclick="openEdit('+c.id+')">'
       +'<td class="cliente">'+esc(c.cliente)+'</td>'
       +'<td class="carteira">'+esc(c.carteira)+'</td>'
@@ -727,6 +799,15 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeEdit()}
 var d=new Date();
 document.getElementById('todayDate').textContent=String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
 document.querySelector('[data-filter="all"]').classList.add('active');
+// Wire period pills
+document.querySelectorAll('.period-pill').forEach(function(b){
+  b.addEventListener('click',function(){
+    var p=b.dataset.period;
+    setPeriod(p==='ano'?'ano':parseInt(p));
+  });
+});
+// Inicializa pílula ativa
+setPeriod(period);
 loadFromCloud(false);
 setInterval(function(){if(_loaded)loadFromCloud(true)},15000);
 </script>
